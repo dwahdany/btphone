@@ -12,6 +12,7 @@
 		66C0FDFE38820A03D4F5E308 /* JitterBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1B67BF076EEC2274A11A84 /* JitterBuffer.swift */; };
 		82096C86C1E0EE4CCFC8B28E /* PeerLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F18216A5D50A463CDC7560 /* PeerLink.swift */; };
 		8934644BE480DF033B8B2DF8 /* Wire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FCE4D28B6ACB7A8CAF3DF3 /* Wire.swift */; };
+		9D7820CFAEAB61E8385569FF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7EE4182D4F01DDED0BB4101B /* Assets.xcassets */; };
 		F758CF365C05A156F64C1EC9 /* IntercomController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CC7E0AADBD27AFC027912E /* IntercomController.swift */; };
 		FDC3049E15A58E7A60592A79 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7591DB3892163A441EF5EF /* ContentView.swift */; };
 /* End PBXBuildFile section */
@@ -23,6 +24,7 @@
 		53FCE4D28B6ACB7A8CAF3DF3 /* Wire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wire.swift; sourceTree = "<group>"; };
 		5CB31A28EBCB02BF925CF8A1 /* BTPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BTPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E7591DB3892163A441EF5EF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7EE4182D4F01DDED0BB4101B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CCF85E029A5CD87621E5B1CC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D1F18216A5D50A463CDC7560 /* PeerLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLink.swift; sourceTree = "<group>"; };
 		FA25F34F3EB496040DFCDBBB /* BTPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTPhoneApp.swift; sourceTree = "<group>"; };
@@ -57,6 +59,7 @@
 		C75B563BF66E73CCEE9F8CE5 /* BTPhone */ = {
 			isa = PBXGroup;
 			children = (
+				7EE4182D4F01DDED0BB4101B /* Assets.xcassets */,
 				FA25F34F3EB496040DFCDBBB /* BTPhoneApp.swift */,
 				7E7591DB3892163A441EF5EF /* ContentView.swift */,
 				CCF85E029A5CD87621E5B1CC /* Info.plist */,
@@ -84,6 +87,7 @@
 			buildConfigurationList = 5342C21C83FF2F9392B0E934 /* Build configuration list for PBXNativeTarget "BTPhone" */;
 			buildPhases = (
 				D1FB3EEA2E781AFB8ECDEB3A /* Sources */,
+				B00D450ED12C875C36B1DB6B /* Resources */,
 			);
 			buildRules = (
 			);
@@ -129,6 +133,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B00D450ED12C875C36B1DB6B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D7820CFAEAB61E8385569FF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D1FB3EEA2E781AFB8ECDEB3A /* Sources */ = {
