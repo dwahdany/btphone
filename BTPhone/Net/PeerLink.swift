@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import WiFiAware
+import os
 
 /// Peer discovery and audio transport over Wi-Fi Aware (iOS 26).
 ///
@@ -18,6 +19,7 @@ import WiFiAware
 /// (and the peer's "link is alive" signal) up while the mic is muted.
 actor PeerLink {
     static let serviceName = "_btphone._udp"
+    private static let log = Logger(subsystem: "com.wahdany.btphone", category: "PeerLink")
 
     enum LinkState: Equatable, Sendable {
         case stopped
@@ -212,6 +214,7 @@ actor PeerLink {
                 }
             } catch {
                 // publisherTimeout after idle, transient failures: re-arm.
+                Self.log.error("listener ended: \(error, privacy: .public)")
                 self.reportIfActionable(error)
             }
             try? await Task.sleep(for: .seconds(1))
@@ -220,6 +223,7 @@ actor PeerLink {
 
     private func adoptInbound(_ connection: NetworkConnection<UDP>) {
         guard started else { return }
+        Self.log.info("listener: adopted inbound connection")
         inboundReceiveTask?.cancel()
         inbound = connection
         // New flow (e.g. the peer relaunched the app) restarts its sequence.
@@ -289,8 +293,10 @@ actor PeerLink {
                     }
                     return .continue
                 }
+                Self.log.info("browser: discovered endpoint \(String(describing: endpoint), privacy: .public)")
                 try await runOutbound(to: endpoint)
             } catch {
+                Self.log.error("browser/outbound ended: \(error, privacy: .public)")
                 self.reportIfActionable(error)
             }
             publish(hasPairedDevices ? .searching : .unpaired)
@@ -303,6 +309,7 @@ actor PeerLink {
             ?? endpoint.device.pairingInfo?.pairingName
             ?? "paired iPhone"
         publish(.connecting(peer: peer))
+        Self.log.info("outbound: connecting to \(peer, privacy: .public)")
 
         let connection = NetworkConnection(
             to: endpoint,
@@ -310,37 +317,50 @@ actor PeerLink {
                 .wifiAware { $0.performanceMode = .realtime }
                 .serviceClass(.interactiveVoice)
         )
-        outbound = connection
-        outboundReady = false
-        outboundBroken = false
-
-        // Wait (bounded) for the datapath to come up.
-        var waitedMilliseconds = 0
-        while started && !Task.isCancelled {
-            let state = connection.state
-            if state == .ready { break }
-            if case .failed(let error) = state { throw error }
-            if case .cancelled = state { return }
-            try await Task.sleep(for: .milliseconds(100))
-            waitedMilliseconds += 100
-            if waitedMilliseconds >= 15_000 {
-                outbound = nil
-                return // give up; browse again
-            }
+        connection.onStateUpdate { [weak self] conn, state in
+            Self.log.info("outbound state: \(String(describing: state), privacy: .public)")
+            guard let self else { return }
+            Task { await self.outboundStateChanged(conn, isReady: state == .ready, peer: peer) }
         }
-        guard started, !Task.isCancelled else { return }
+
+        // Mark the flow usable immediately: the connection is established
+        // lazily by its first send, so the sender loop (50 frames/s, or
+        // 2 keepalives/s while muted) is what actually drives it up.
+        // Gating sends on .ready would deadlock — nothing would ever
+        // establish the datapath.
+        outbound = connection
+        outboundBroken = false
         outboundReady = true
-        publish(.connected(peer: peer))
-        publishHint(nil)
 
         // Hold this flow until it breaks (send failure or state change);
         // the framework fails the connection when the peer goes away.
-        while started && !Task.isCancelled {
-            if outboundBroken || connection.state != .ready { break }
+        // If it never comes up at all, give up after 20 s and re-browse.
+        var secondsWithoutReady = 0
+        while started && !Task.isCancelled && !outboundBroken {
+            let state = connection.state
+            if state == .ready {
+                secondsWithoutReady = 0
+            } else {
+                if case .failed = state { break }
+                if case .cancelled = state { break }
+                secondsWithoutReady += 1
+                if secondsWithoutReady >= 20 { break }
+            }
             try await Task.sleep(for: .seconds(1))
         }
+        Self.log.info("outbound: flow ended (broken=\(self.outboundBroken), state=\(String(describing: connection.state), privacy: .public))")
         outboundReady = false
         outbound = nil
+    }
+
+    private func outboundStateChanged(
+        _ connection: NetworkConnection<UDP>, isReady: Bool, peer: String
+    ) {
+        guard outbound === connection else { return }
+        if isReady {
+            publish(.connected(peer: peer))
+            publishHint(nil)
+        }
     }
 
     private func senderLoop() async {
@@ -353,6 +373,7 @@ actor PeerLink {
                 try await connection.send(datagram)
             } catch {
                 // Datapath died; runOutbound notices and re-browses.
+                Self.log.error("send failed: \(error, privacy: .public)")
                 outboundBroken = true
                 outboundReady = false
             }

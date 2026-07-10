@@ -6,6 +6,13 @@ import AVFoundation
 /// Capture: mic -> input tap -> capture queue -> AVAudioConverter -> 16 kHz
 ///          mono Int16 frames handed to `onCapturedFrame` (20 ms each).
 /// Playback: network payloads -> JitterBuffer -> AVAudioSourceNode -> mixer.
+///
+/// One engine lives for the whole process. Session category and voice
+/// processing are configured exactly once: reapplying them on every restart
+/// posts hardware-format/route changes that stop the freshly started engine,
+/// which the watchdog then replaces — an endless 2-second teardown loop.
+/// Restarts only reinstall the mic tap (whose format legitimately changes
+/// with the route) and restart the engine.
 final class IntercomAudio {
     /// Called on the capture queue with one 640-byte wire frame at a time.
     /// Set before calling start(); re-read on every start.
@@ -19,7 +26,9 @@ final class IntercomAudio {
     private(set) var isRunning = false
     var engineRunning: Bool { engine.isRunning }
 
-    private var engine = AVAudioEngine()
+    private let engine = AVAudioEngine()
+    private var sessionConfigured = false
+    private var voiceProcessingEnabled = false
     private var sourceNode: AVAudioSourceNode?
     private let scratchCapacity = 8192
     private let scratch: UnsafeMutablePointer<Int16>
@@ -61,48 +70,58 @@ final class IntercomAudio {
         scratch.deallocate()
     }
 
-    func configureSession() throws {
-        let session = AVAudioSession.sharedInstance()
-        // HFP only, deliberately no A2DP: with a helmet headset we need its
-        // boom mic, and A2DP routes would fall back to the phone's own mic
-        // (useless inside a pocket).
-        let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
-        try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
-        try session.setPreferredIOBufferDuration(0.01)
-        try session.setActive(true, options: .notifyOthersOnDeactivation)
-    }
-
     func start() throws {
         guard !isRunning else { return }
-        try configureSession()
 
-        // Fresh engine each start: after route changes (helmet headset
-        // connecting) the old graph's formats are stale.
-        engine = AVAudioEngine()
+        let session = AVAudioSession.sharedInstance()
+        if !sessionConfigured {
+            // HFP only, deliberately no A2DP: with a helmet headset we need
+            // its boom mic, and A2DP routes would fall back to the phone's
+            // own mic (useless inside a pocket).
+            try session.setCategory(
+                .playAndRecord, mode: .voiceChat,
+                options: [.defaultToSpeaker, .allowBluetoothHFP]
+            )
+            try session.setPreferredIOBufferDuration(0.01)
+            sessionConfigured = true
+        }
+        // Re-activation is needed after interruptions and is cheap when the
+        // session is already active; unlike setCategory it does not churn
+        // the hardware format.
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+
         let input = engine.inputNode
-        try input.setVoiceProcessingEnabled(true)
+        if !voiceProcessingEnabled {
+            try input.setVoiceProcessingEnabled(true)
+            voiceProcessingEnabled = true
+        }
 
-        let jitter = self.jitter
-        let scratch = self.scratch
-        let scratchCapacity = self.scratchCapacity
-        let node = AVAudioSourceNode(format: wireFloatFormat) { _, _, frameCount, audioBufferList -> OSStatus in
-            let n = Int(frameCount)
-            let buffers = UnsafeMutableAudioBufferListPointer(audioBufferList)
-            guard let rawOut = buffers[0].mData else { return noErr }
-            let out = rawOut.assumingMemoryBound(to: Float.self)
-            guard n <= scratchCapacity else {
-                out.update(repeating: 0, count: n)
+        if sourceNode == nil {
+            let jitter = self.jitter
+            let scratch = self.scratch
+            let scratchCapacity = self.scratchCapacity
+            let node = AVAudioSourceNode(format: wireFloatFormat) { _, _, frameCount, audioBufferList -> OSStatus in
+                let n = Int(frameCount)
+                let buffers = UnsafeMutableAudioBufferListPointer(audioBufferList)
+                guard let rawOut = buffers[0].mData else { return noErr }
+                let out = rawOut.assumingMemoryBound(to: Float.self)
+                guard n <= scratchCapacity else {
+                    out.update(repeating: 0, count: n)
+                    return noErr
+                }
+                jitter.read(into: scratch, count: n)
+                for i in 0..<n {
+                    out[i] = Float(scratch[i]) / 32768.0
+                }
                 return noErr
             }
-            jitter.read(into: scratch, count: n)
-            for i in 0..<n {
-                out[i] = Float(scratch[i]) / 32768.0
-            }
-            return noErr
+            engine.attach(node)
+            // Fixed 16 kHz mono float on this edge; the mixer resamples to
+            // whatever the hardware wants, so route changes never invalidate
+            // this connection.
+            engine.connect(node, to: engine.mainMixerNode, format: wireFloatFormat)
+            sourceNode = node
         }
-        engine.attach(node)
-        engine.connect(node, to: engine.mainMixerNode, format: wireFloatFormat)
-        sourceNode = node
 
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
@@ -121,6 +140,7 @@ final class IntercomAudio {
         let context = CaptureContext(converter: converter, onFrame: onCapturedFrame ?? { _ in })
         captureContext = context
         let captureQueue = self.captureQueue
+        input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 512, format: inputFormat) { buffer, _ in
             captureQueue.async {
                 guard context.active else { return }
@@ -143,16 +163,12 @@ final class IntercomAudio {
             captureContext = nil
         }
         engine.stop()
-        if let sourceNode {
-            engine.detach(sourceNode)
-        }
-        sourceNode = nil
         jitter.reset()
         isRunning = false
     }
 
     /// Feed one received wire payload (Int16 little-endian samples) into the
-    /// playback path. Called from the network queue.
+    /// playback path. Called from the network receive task.
     func enqueuePlayback(_ payload: Data) {
         let sampleCount = payload.count / MemoryLayout<Int16>.size
         guard sampleCount > 0 else { return }
