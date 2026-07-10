@@ -2,7 +2,7 @@ name: BTPhone
 options:
   bundleIdPrefix: com.wahdany
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -21,18 +21,24 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: "1.0"
+    entitlements:
+      path: BTPhone/BTPhone.entitlements
+      properties:
+        com.apple.developer.wifi-aware:
+          - Publish
+          - Subscribe
     info:
       path: BTPhone/Info.plist
       properties:
         CFBundleDisplayName: BTPhone
         UILaunchScreen: {}
         NSMicrophoneUsageDescription: "BTPhone streams your voice to the other rider's phone."
-        NSLocalNetworkUsageDescription: "BTPhone connects directly to the other phone over peer-to-peer Wi-Fi. No data leaves the two phones."
-        NSBonjourServices:
-          - _btphone._udp
+        WiFiAwareServices:
+          _btphone._udp:
+            Publishable: {}
+            Subscribable: {}
         UIBackgroundModes:
           - audio
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UIRequiresFullScreen: true
         ITSAppUsesNonExemptEncryption: false

@@ -22,12 +22,6 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_btphone._udp</string>
-	</array>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>BTPhone connects directly to the other phone over peer-to-peer Wi-Fi. No data leaves the two phones.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BTPhone streams your voice to the other rider's phone.</string>
 	<key>UIBackgroundModes</key>
@@ -36,11 +30,19 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>UIRequiresFullScreen</key>
-	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>WiFiAwareServices</key>
+	<dict>
+		<key>_btphone._udp</key>
+		<dict>
+			<key>Publishable</key>
+			<dict/>
+			<key>Subscribable</key>
+			<dict/>
+		</dict>
+	</dict>
 </dict>
 </plist>

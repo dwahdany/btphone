@@ -66,12 +66,7 @@ final class IntercomAudio {
         // HFP only, deliberately no A2DP: with a helmet headset we need its
         // boom mic, and A2DP routes would fall back to the phone's own mic
         // (useless inside a pocket).
-        var options: AVAudioSession.CategoryOptions = [.defaultToSpeaker]
-        if #available(iOS 26.0, *) {
-            options.insert(.allowBluetoothHFP)
-        } else {
-            options.insert(.allowBluetooth)
-        }
+        let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
         try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
         try session.setPreferredIOBufferDuration(0.01)
         try session.setActive(true, options: .notifyOthersOnDeactivation)

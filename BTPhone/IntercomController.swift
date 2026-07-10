@@ -12,6 +12,7 @@ final class IntercomController: ObservableObject {
     @Published private(set) var micPermissionDenied = false
     @Published private(set) var lastError: String?
     @Published private(set) var linkHint: String?
+    @Published private(set) var isPaired = false
     /// False whenever the audio engine is not actually producing/consuming
     /// audio — the UI must never claim LIVE while this is false.
     @Published private(set) var audioActive = false
@@ -22,8 +23,6 @@ final class IntercomController: ObservableObject {
             muted = isMuted
         }
     }
-
-    var localDisplayName: String { link.localDisplayName }
 
     private let audio = IntercomAudio()
     private let link = PeerLink()
@@ -63,7 +62,8 @@ final class IntercomController: ObservableObject {
     }
 
     func restartLink() {
-        link.restart()
+        let link = link
+        Task { await link.restart() }
     }
 
     func restartAudio() {
@@ -77,42 +77,55 @@ final class IntercomController: ObservableObject {
         guard !pipelinesStarted else { return }
         pipelinesStarted = true
 
+        let link = self.link
+        let audio = self.audio
+
         // muteTick lives in this closure and is only touched on the audio
         // capture queue. While muted we send an empty keepalive datagram
         // every 25 frames (2/s) so the peer can tell "muted" from "gone".
         var muteTick = 0
-        audio.onCapturedFrame = { [weak self] frame in
-            guard let self else { return }
-            if self.muted {
+        let mutedFlag = self.mutedFlag
+        audio.onCapturedFrame = { frame in
+            if mutedFlag.withLock({ $0 }) {
                 muteTick += 1
                 if muteTick >= 25 {
                     muteTick = 0
-                    self.link.send(frame: Data())
+                    link.send(frame: Data())
                 }
             } else {
                 muteTick = 0
-                self.link.send(frame: frame)
+                link.send(frame: frame)
             }
         }
-        link.onPayload = { [weak self] payload in
-            self?.audio.enqueuePlayback(payload)
-        }
-        link.onState = { [weak self] state in
-            self?.linkState = state
-        }
-        link.onHint = { [weak self] hint in
-            self?.linkHint = hint
-        }
-        link.onStats = { [weak self] stats in
-            guard let self else { return }
-            self.stats = stats
-            self.bufferMilliseconds = self.audio.jitter.bufferedMilliseconds
+
+        Task {
+            await link.configure(
+                onPayload: { [weak audio] payload in
+                    audio?.enqueuePlayback(payload)
+                },
+                onState: { [weak self] state in
+                    MainActor.assumeIsolated { self?.linkState = state }
+                },
+                onStats: { [weak self] stats in
+                    MainActor.assumeIsolated {
+                        guard let self else { return }
+                        self.stats = stats
+                        self.bufferMilliseconds = self.audio.jitter.bufferedMilliseconds
+                    }
+                },
+                onHint: { [weak self] hint in
+                    MainActor.assumeIsolated { self?.linkHint = hint }
+                },
+                onPairedChanged: { [weak self] paired in
+                    MainActor.assumeIsolated { self?.isPaired = paired }
+                }
+            )
+            await link.start()
         }
 
         installAudioObservers()
         installWatchdog()
         startAudio()
-        link.start()
     }
 
     private func startAudio() {

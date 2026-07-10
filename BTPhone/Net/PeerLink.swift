@@ -1,27 +1,34 @@
 import Foundation
 import Network
-import UIKit
+import WiFiAware
 
-/// Peer discovery and audio transport over peer-to-peer Wi-Fi (AWDL) and,
-/// when available, regular local networks.
+/// Peer discovery and audio transport over Wi-Fi Aware (iOS 26).
 ///
-/// Both phones advertise a Bonjour service and browse for it simultaneously.
-/// Audio flows over two independent one-way UDP streams: my browser connects
-/// to your listener to carry my mic, yours connects to mine to carry your
-/// mic. That symmetry removes any need for role negotiation — both phones
-/// just launch the app.
+/// Both phones publish AND subscribe the `_btphone._udp` service to their
+/// paired devices, giving two independent one-way UDP flows: my browser
+/// connects to your listener to carry my mic, yours connects to mine to
+/// carry your mic. No role negotiation — both phones just run the app.
+///
+/// Unlike the old AWDL/Bonjour transport, Wi-Fi Aware links are paired,
+/// authenticated, and encrypted by the system, and they keep running with
+/// the screen locked as long as the app stays alive (our audio background
+/// mode guarantees that).
 ///
 /// Datagrams with an empty payload are mute keepalives: they keep the flow
 /// (and the peer's "link is alive" signal) up while the mic is muted.
-final class PeerLink {
-    enum LinkState: Equatable {
+actor PeerLink {
+    static let serviceName = "_btphone._udp"
+
+    enum LinkState: Equatable, Sendable {
         case stopped
+        case unsupported
+        case unpaired
         case searching
         case connecting(peer: String)
         case connected(peer: String)
     }
 
-    struct Stats {
+    struct Stats: Sendable {
         var packetsReceived: Int = 0
         var packetsLost: Int = 0
         var lateDrops: Int = 0
@@ -32,256 +39,209 @@ final class PeerLink {
         var peerMuted: Bool = false
     }
 
-    /// Full advertised name, e.g. "Dariush's iPhone#3f2a". The random suffix
-    /// keeps names unique even when both phones report the generic "iPhone".
-    let localName: String
+    // Callbacks. onPayload fires on the receive task (off-main); the rest
+    // are delivered on the main queue.
+    private var onPayload: (@Sendable (Data) -> Void)?
+    private var onState: (@Sendable (LinkState) -> Void)?
+    private var onStats: (@Sendable (Stats) -> Void)?
+    private var onHint: (@Sendable (String?) -> Void)?
+    private var onPairedChanged: (@Sendable (Bool) -> Void)?
 
-    var localDisplayName: String { Self.displayName(from: localName) }
-
-    /// Called on the network queue with the raw audio payload of a datagram.
-    var onPayload: ((Data) -> Void)?
-    /// Called on the main queue.
-    var onState: ((LinkState) -> Void)?
-    /// Called on the main queue roughly once per second.
-    var onStats: ((Stats) -> Void)?
-    /// Called on the main queue with a user-facing diagnostic (or nil to clear).
-    var onHint: ((String?) -> Void)?
-
-    private static let serviceType = "_btphone._udp"
-    // kDNSServiceErr_PolicyDenied: the user declined the Local Network prompt.
-    private static let dnsPolicyDenied: Int32 = -65570
-
-    private let queue = DispatchQueue(label: "btphone.network", qos: .userInteractive)
-
-    private var listener: NWListener?
-    private var browser: NWBrowser?
-    private var inbound: NWConnection?
-    private var outbound: NWConnection?
-    private var outboundPeerName: String?
-    private var outboundReady = false
     private var started = false
+    private var hasPairedDevices = false
+    private var lastPublishedState: LinkState?
 
-    /// Once the listener binds, keep that port for every later restart so a
-    /// peer whose UDP flow is pinned to it keeps reaching us.
-    private var boundPort: NWEndpoint.Port?
+    private var listenerTask: Task<Void, Never>?
+    private var browserTask: Task<Void, Never>?
+    private var statsTask: Task<Void, Never>?
+    private var pairMonitorTask: Task<Void, Never>?
+    private var senderTask: Task<Void, Never>?
+    private var inboundReceiveTask: Task<Void, Never>?
+
+    private var inbound: NetworkConnection<UDP>?
+    private var outbound: NetworkConnection<UDP>?
+    private var outboundReady = false
+    private var outboundBroken = false
 
     private var txSequence: UInt32 = 0
     private var highestRxSequence: UInt32?
-    /// Names that recently failed to connect, so evaluate() prefers others.
-    private var recentlyFailedPeers: [String: Date] = [:]
     private var stats = Stats()
     private var lastAudioDate: Date?
     private var lastKeepaliveDate: Date?
-    private var statsTimer: DispatchSourceTimer?
-    // Snapshots of (received, lost) deltas for the windowed loss figure.
     private var lossHistory: [(received: Int, lost: Int)] = []
     private var lastTotals: (received: Int, lost: Int) = (0, 0)
 
+    // Mic frames enter here synchronously from the audio capture queue; the
+    // sender task drains it. bufferingNewest keeps latency bounded if the
+    // radio stalls: old frames are dropped, not queued.
+    private nonisolated let outboxStream: AsyncStream<Data>
+    private nonisolated let outbox: AsyncStream<Data>.Continuation
+
     init() {
-        let suffix = String(format: "%04x", UInt16.random(in: .min ... .max))
-        localName = "\(UIDevice.current.name)#\(suffix)"
+        (outboxStream, outbox) = AsyncStream.makeStream(
+            of: Data.self, bufferingPolicy: .bufferingNewest(8)
+        )
     }
 
-    static func displayName(from serviceName: String) -> String {
-        guard let hashIndex = serviceName.lastIndex(of: "#") else { return serviceName }
-        return String(serviceName[..<hashIndex])
+    deinit {
+        outbox.finish()
+        listenerTask?.cancel()
+        browserTask?.cancel()
+        statsTask?.cancel()
+        pairMonitorTask?.cancel()
+        senderTask?.cancel()
+        inboundReceiveTask?.cancel()
     }
 
-    func start() {
-        queue.async { self.startLocked() }
-    }
-
-    func stop() {
-        queue.async {
-            self.stopLocked()
-            self.publishState(.stopped)
-        }
-    }
-
-    func restart() {
-        queue.async {
-            self.stopLocked()
-            self.startLocked()
-        }
+    func configure(
+        onPayload: @escaping @Sendable (Data) -> Void,
+        onState: @escaping @Sendable (LinkState) -> Void,
+        onStats: @escaping @Sendable (Stats) -> Void,
+        onHint: @escaping @Sendable (String?) -> Void,
+        onPairedChanged: @escaping @Sendable (Bool) -> Void
+    ) {
+        self.onPayload = onPayload
+        self.onState = onState
+        self.onStats = onStats
+        self.onHint = onHint
+        self.onPairedChanged = onPairedChanged
     }
 
     /// Thread-safe; called from the audio capture queue with one wire frame,
     /// or with empty Data as a mute keepalive.
-    func send(frame: Data) {
-        queue.async {
-            guard let outbound = self.outbound, self.outboundReady else { return }
-            var datagram = withUnsafeBytes(of: self.txSequence.bigEndian) { Data($0) }
-            datagram.append(frame)
-            self.txSequence &+= 1
-            outbound.send(content: datagram, completion: .contentProcessed { [weak self] error in
-                guard let self, let error else { return }
-                // Only errors that mean "the peer endpoint is gone" justify
-                // a reconnect; queue-full style hiccups (ENOBUFS, EAGAIN on
-                // a congested AWDL link) are just one dropped frame.
-                if case .posix(let code) = error,
-                   code == .ECONNREFUSED || code == .EHOSTUNREACH
-                       || code == .EHOSTDOWN || code == .ENETUNREACH {
-                    self.handleSendError(on: outbound)
-                }
-            })
+    nonisolated func send(frame: Data) {
+        outbox.yield(frame)
+    }
+
+    // MARK: - Lifecycle
+
+    func start() {
+        guard !started else { return }
+        guard WACapabilities.supportedFeatures.contains(.wifiAware) else {
+            publish(.unsupported)
+            return
+        }
+        started = true
+        publish(.searching)
+        pairMonitorTask = Task { await self.monitorPairedDevices() }
+        listenerTask = Task { await self.listenerLoop() }
+        browserTask = Task { await self.browserLoop() }
+        statsTask = Task { await self.statsLoop() }
+        if senderTask == nil {
+            // Lives for the object's lifetime: an AsyncStream can only be
+            // iterated once, so restarts must not recreate this task.
+            senderTask = Task { await self.senderLoop() }
         }
     }
 
-    // MARK: - Lifecycle (all on `queue`)
-
-    private func startLocked() {
-        guard !started else { return }
-        started = true
-        publishState(.searching)
-        startListener()
-        startBrowser()
-        startStatsTimer()
-    }
-
-    private func stopLocked() {
+    func stop() {
+        guard started else { return }
         started = false
-        statsTimer?.cancel()
-        statsTimer = nil
-        listener?.cancel()
-        listener = nil
-        browser?.cancel()
-        browser = nil
-        inbound?.cancel()
+        listenerTask?.cancel()
+        listenerTask = nil
+        browserTask?.cancel()
+        browserTask = nil
+        statsTask?.cancel()
+        statsTask = nil
+        pairMonitorTask?.cancel()
+        pairMonitorTask = nil
+        inboundReceiveTask?.cancel()
+        inboundReceiveTask = nil
         inbound = nil
-        teardownOutbound()
+        outbound = nil
+        outboundReady = false
+        outboundBroken = false
         txSequence = 0
         highestRxSequence = nil
-        recentlyFailedPeers = [:]
         stats = Stats()
         lastAudioDate = nil
         lastKeepaliveDate = nil
         lossHistory = []
         lastTotals = (0, 0)
-        // boundPort is intentionally kept: a restarted listener must come
-        // back on the same port or the peer's pinned flow goes into a void.
+        publish(.stopped)
     }
 
-    private func makeParameters() -> NWParameters {
-        let parameters = NWParameters.udp
-        parameters.includePeerToPeer = true
-        parameters.serviceClass = .interactiveVoice
-        parameters.allowLocalEndpointReuse = true
-        return parameters
+    func restart() {
+        stop()
+        start()
     }
 
-    private func checkPermissionDenied(_ error: NWError) {
-        if case .dns(let code) = error, code == Self.dnsPolicyDenied {
-            publishHint(
-                "Local Network permission is blocked. Enable it in Settings → Privacy & Security → Local Network → BTPhone, then tap Restart connection."
-            )
+    // MARK: - Paired devices
+
+    private func monitorPairedDevices() async {
+        do {
+            for try await devices in WAPairedDevice.allDevices {
+                guard started else { return }
+                hasPairedDevices = !devices.isEmpty
+                let paired = hasPairedDevices
+                if let onPairedChanged {
+                    DispatchQueue.main.async { onPairedChanged(paired) }
+                }
+                if !paired {
+                    publish(.unpaired)
+                } else if lastPublishedState == .unpaired {
+                    publish(.searching)
+                }
+            }
+        } catch {
+            // Monitoring failing is non-fatal; pairing state just goes stale.
         }
     }
 
     // MARK: - Listener (receives the peer's audio)
 
-    private func scheduleListenerRetry() {
-        queue.asyncAfter(deadline: .now() + 1) { [weak self] in
-            guard let self, self.started, self.listener == nil else { return }
-            self.startListener()
+    private func listenerLoop() async {
+        while started && !Task.isCancelled {
+            guard hasPairedDevices,
+                  let service = WAPublishableService.allServices[Self.serviceName] else {
+                try? await Task.sleep(for: .seconds(1))
+                continue
+            }
+            do {
+                let provider: any ListenerProvider = .wifiAware(
+                    .connecting(to: service, from: .allPairedDevices, datapath: .realtime)
+                )
+                let listener = try NetworkListener(
+                    for: provider,
+                    using: .parameters { UDP() }
+                        .wifiAware { $0.performanceMode = .realtime }
+                        .serviceClass(.interactiveVoice)
+                )
+                try await listener.run { connection in
+                    self.adoptInbound(connection)
+                }
+            } catch {
+                // publisherTimeout after idle, transient failures: re-arm.
+                self.reportIfActionable(error)
+            }
+            try? await Task.sleep(for: .seconds(1))
         }
     }
 
-    private func startListener() {
-        let listener: NWListener
-        do {
-            if let port = boundPort {
-                do {
-                    listener = try NWListener(using: makeParameters(), on: port)
-                } catch {
-                    boundPort = nil
-                    listener = try NWListener(using: makeParameters())
-                }
-            } else {
-                listener = try NWListener(using: makeParameters())
-            }
-        } catch {
-            scheduleListenerRetry()
-            return
-        }
-
-        listener.service = NWListener.Service(name: localName, type: Self.serviceType)
-        listener.newConnectionHandler = { [weak self] connection in
-            self?.adoptInbound(connection)
-        }
-        var everReady = false
-        listener.stateUpdateHandler = { [weak self, weak listener] state in
-            guard let self, let listener, self.listener === listener, self.started else { return }
-            switch state {
-            case .ready:
-                everReady = true
-                if self.boundPort == nil {
-                    self.boundPort = listener.port
-                }
-            case .waiting(let error):
-                self.checkPermissionDenied(error)
-            case .failed:
-                // A pinned port that never bound is likely held by another
-                // process — fall back to an ephemeral port next attempt.
-                if !everReady {
-                    self.boundPort = nil
-                }
-                self.listener = nil
-                listener.cancel()
-                self.scheduleListenerRetry()
-            default:
-                break
-            }
-        }
-        listener.start(queue: queue)
-        self.listener = listener
-
-        // Escape hatch for a pinned bind that hangs in .waiting instead of
-        // failing outright: after 5 s without .ready, rebind ephemeral.
-        if boundPort != nil {
-            queue.asyncAfter(deadline: .now() + 5) { [weak self, weak listener] in
-                guard let self, let listener, self.listener === listener,
-                      self.started, !everReady else { return }
-                self.boundPort = nil
-                self.listener = nil
-                listener.cancel()
-                self.startListener()
-            }
-        }
-    }
-
-    private func adoptInbound(_ connection: NWConnection) {
-        inbound?.cancel()
+    private func adoptInbound(_ connection: NetworkConnection<UDP>) {
+        guard started else { return }
+        inboundReceiveTask?.cancel()
         inbound = connection
         // New flow (e.g. the peer relaunched the app) restarts its sequence.
         highestRxSequence = nil
-        connection.stateUpdateHandler = { [weak self] state in
-            guard let self, self.inbound === connection else { return }
-            switch state {
-            case .failed, .cancelled:
-                self.inbound = nil
-            default:
-                break
-            }
-        }
-        connection.start(queue: queue)
-        receiveLoop(on: connection)
+        inboundReceiveTask = Task { await self.receiveLoop(on: connection) }
     }
 
-    private func receiveLoop(on connection: NWConnection) {
-        connection.receiveMessage { [weak self] data, _, _, error in
-            guard let self, self.inbound === connection else { return }
-            if let data, data.count >= Wire.headerBytes {
-                self.handleDatagram(data)
+    private func receiveLoop(on connection: NetworkConnection<UDP>) async {
+        do {
+            while started && !Task.isCancelled {
+                let message = try await connection.receive()
+                handleDatagram(message.content)
             }
-            if error == nil {
-                self.receiveLoop(on: connection)
-            } else {
-                self.inbound = nil
+        } catch {
+            if inbound === connection {
+                inbound = nil
             }
         }
     }
 
     private func handleDatagram(_ data: Data) {
+        guard data.count >= Wire.headerBytes else { return }
         let sequence = data.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }.bigEndian
 
         if let highest = highestRxSequence {
@@ -312,191 +272,148 @@ final class PeerLink {
 
     // MARK: - Browser (carries my audio to the peer)
 
-    private func scheduleBrowserRetry() {
-        queue.asyncAfter(deadline: .now() + 1) { [weak self] in
-            guard let self, self.started, self.browser == nil else { return }
-            self.startBrowser()
-        }
-    }
-
-    private func startBrowser() {
-        let parameters = NWParameters()
-        parameters.includePeerToPeer = true
-        let browser = NWBrowser(
-            for: .bonjour(type: Self.serviceType, domain: nil),
-            using: parameters
-        )
-        browser.browseResultsChangedHandler = { [weak self] results, _ in
-            self?.evaluate(results: results)
-        }
-        browser.stateUpdateHandler = { [weak self, weak browser] state in
-            guard let self, let browser, self.browser === browser, self.started else { return }
-            switch state {
-            case .ready:
-                self.publishHint(nil)
-            case .waiting(let error):
-                self.checkPermissionDenied(error)
-            case .failed:
-                self.browser = nil
-                browser.cancel()
-                self.scheduleBrowserRetry()
-            default:
-                break
+    private func browserLoop() async {
+        while started && !Task.isCancelled {
+            guard hasPairedDevices,
+                  let service = WASubscribableService.allServices[Self.serviceName] else {
+                try? await Task.sleep(for: .seconds(1))
+                continue
             }
-        }
-        browser.start(queue: queue)
-        self.browser = browser
-    }
-
-    private func evaluate(results: Set<NWBrowser.Result>) {
-        guard started else { return }
-        let candidates: [(name: String, endpoint: NWEndpoint)] = results.compactMap { result in
-            guard case let .service(name, _, _, _) = result.endpoint, name != localName else {
-                return nil
-            }
-            return (name, result.endpoint)
-        }
-
-        if let current = outboundPeerName {
-            if candidates.contains(where: { $0.name == current }) {
-                return // keep the existing connection
-            }
-            teardownOutbound() // peer's advertisement vanished
-        }
-
-        // Deterministic pick if several phones are around, but deprioritize
-        // names that just failed to connect — a battery-died peer's stale
-        // Bonjour record can linger next to its fresh post-reboot one.
-        let now = Date()
-        recentlyFailedPeers = recentlyFailedPeers.filter { now.timeIntervalSince($0.value) < 10 }
-        guard let target = candidates.min(by: {
-            let aFailed = recentlyFailedPeers[$0.name] != nil
-            let bFailed = recentlyFailedPeers[$1.name] != nil
-            if aFailed != bFailed { return !aFailed }
-            return $0.name < $1.name
-        }) else {
-            publishState(.searching)
-            return
-        }
-        connect(to: target.endpoint, named: target.name)
-    }
-
-    private func connect(to endpoint: NWEndpoint, named name: String) {
-        teardownOutbound()
-        let display = Self.displayName(from: name)
-        publishState(.connecting(peer: display))
-
-        let connection = NWConnection(to: endpoint, using: makeParameters())
-        outbound = connection
-        outboundPeerName = name
-        outboundReady = false
-
-        var waitingTimeoutArmed = false
-        connection.stateUpdateHandler = { [weak self] state in
-            guard let self, self.outbound === connection else { return }
-            switch state {
-            case .ready:
-                self.outboundReady = true
-                waitingTimeoutArmed = false
-                self.recentlyFailedPeers.removeValue(forKey: name)
-                self.publishState(.connected(peer: display))
-            case .failed, .cancelled:
-                self.recentlyFailedPeers[name] = Date()
-                self.teardownOutbound()
-                self.publishState(.searching)
-                self.scheduleReconnect()
-            case .waiting:
-                self.outboundReady = false
-                self.publishState(.connecting(peer: display))
-                // A UDP connection can sit in .waiting forever (e.g. a stale
-                // Bonjour record for a peer that died without a goodbye).
-                // Give it 5 s, then move on to another candidate.
-                if !waitingTimeoutArmed {
-                    waitingTimeoutArmed = true
-                    self.queue.asyncAfter(deadline: .now() + 5) { [weak self] in
-                        guard let self, self.started,
-                              self.outbound === connection, !self.outboundReady else { return }
-                        self.recentlyFailedPeers[name] = Date()
-                        self.teardownOutbound()
-                        self.publishState(.searching)
-                        self.scheduleReconnect()
+            do {
+                let browser = NetworkBrowser(
+                    for: .wifiAware(.connecting(to: .allPairedDevices, from: service))
+                )
+                let endpoint: WAEndpoint = try await browser.run { endpoints in
+                    if let first = endpoints.first {
+                        return .finish(first)
                     }
+                    return .continue
                 }
-            default:
-                break
+                try await runOutbound(to: endpoint)
+            } catch {
+                self.reportIfActionable(error)
             }
-        }
-        connection.start(queue: queue)
-    }
-
-    /// A send error means the peer's listener moved or died while the flow
-    /// stayed "ready" (UDP has no liveness). Reconnect through a fresh
-    /// Bonjour resolution, which picks up the peer's current port.
-    private func handleSendError(on connection: NWConnection) {
-        guard started, outbound === connection else { return }
-        teardownOutbound()
-        publishState(.searching)
-        scheduleReconnect()
-    }
-
-    private func scheduleReconnect() {
-        queue.asyncAfter(deadline: .now() + 1) { [weak self] in
-            guard let self, self.started, self.outbound == nil else { return }
-            if let results = self.browser?.browseResults {
-                self.evaluate(results: results)
-            }
+            publish(hasPairedDevices ? .searching : .unpaired)
+            try? await Task.sleep(for: .seconds(1))
         }
     }
 
-    private func teardownOutbound() {
-        outbound?.stateUpdateHandler = nil
-        outbound?.cancel()
-        outbound = nil
-        outboundPeerName = nil
+    private func runOutbound(to endpoint: WAEndpoint) async throws {
+        let peer = endpoint.device.name
+            ?? endpoint.device.pairingInfo?.pairingName
+            ?? "paired iPhone"
+        publish(.connecting(peer: peer))
+
+        let connection = NetworkConnection(
+            to: endpoint,
+            using: .parameters { UDP() }
+                .wifiAware { $0.performanceMode = .realtime }
+                .serviceClass(.interactiveVoice)
+        )
+        outbound = connection
         outboundReady = false
+        outboundBroken = false
+
+        // Wait (bounded) for the datapath to come up.
+        var waitedMilliseconds = 0
+        while started && !Task.isCancelled {
+            let state = connection.state
+            if state == .ready { break }
+            if case .failed(let error) = state { throw error }
+            if case .cancelled = state { return }
+            try await Task.sleep(for: .milliseconds(100))
+            waitedMilliseconds += 100
+            if waitedMilliseconds >= 15_000 {
+                outbound = nil
+                return // give up; browse again
+            }
+        }
+        guard started, !Task.isCancelled else { return }
+        outboundReady = true
+        publish(.connected(peer: peer))
+        publishHint(nil)
+
+        // Hold this flow until it breaks (send failure or state change);
+        // the framework fails the connection when the peer goes away.
+        while started && !Task.isCancelled {
+            if outboundBroken || connection.state != .ready { break }
+            try await Task.sleep(for: .seconds(1))
+        }
+        outboundReady = false
+        outbound = nil
+    }
+
+    private func senderLoop() async {
+        for await frame in outboxStream {
+            guard started, outboundReady, let connection = outbound else { continue }
+            var datagram = withUnsafeBytes(of: txSequence.bigEndian) { Data($0) }
+            datagram.append(frame)
+            txSequence &+= 1
+            do {
+                try await connection.send(datagram)
+            } catch {
+                // Datapath died; runOutbound notices and re-browses.
+                outboundBroken = true
+                outboundReady = false
+            }
+        }
     }
 
     // MARK: - Stats
 
-    private func startStatsTimer() {
-        let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 1, repeating: 1)
-        timer.setEventHandler { [weak self] in
-            guard let self else { return }
+    private func statsLoop() async {
+        while started && !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(1))
+            guard started else { return }
             let now = Date()
-            self.stats.receivingAudio =
-                self.lastAudioDate.map { now.timeIntervalSince($0) < 1.5 } ?? false
+            stats.receivingAudio =
+                lastAudioDate.map { now.timeIntervalSince($0) < 1.5 } ?? false
             // Wider window than receivingAudio: keepalives pause for a
             // couple of seconds during the muted phone's audio restarts,
             // and that must not flash a scary "no audio" warning.
-            self.stats.peerMuted = !self.stats.receivingAudio &&
-                (self.lastKeepaliveDate.map { now.timeIntervalSince($0) < 5 } ?? false)
+            stats.peerMuted = !stats.receivingAudio &&
+                (lastKeepaliveDate.map { now.timeIntervalSince($0) < 5 } ?? false)
 
-            self.lossHistory.append((
-                received: self.stats.packetsReceived - self.lastTotals.received,
-                lost: self.stats.packetsLost - self.lastTotals.lost
+            lossHistory.append((
+                received: stats.packetsReceived - lastTotals.received,
+                lost: stats.packetsLost - lastTotals.lost
             ))
-            self.lastTotals = (self.stats.packetsReceived, self.stats.packetsLost)
-            if self.lossHistory.count > 10 {
-                self.lossHistory.removeFirst(self.lossHistory.count - 10)
+            lastTotals = (stats.packetsReceived, stats.packetsLost)
+            if lossHistory.count > 10 {
+                lossHistory.removeFirst(lossHistory.count - 10)
             }
-            let received = self.lossHistory.reduce(0) { $0 + $1.received }
-            let lost = self.lossHistory.reduce(0) { $0 + $1.lost }
-            self.stats.recentLossPercent =
+            let received = lossHistory.reduce(0) { $0 + $1.received }
+            let lost = lossHistory.reduce(0) { $0 + $1.lost }
+            stats.recentLossPercent =
                 (received + lost) > 0 ? Double(lost) * 100 / Double(received + lost) : 0
 
-            let snapshot = self.stats
-            DispatchQueue.main.async { self.onStats?(snapshot) }
+            if let onStats {
+                let snapshot = stats
+                DispatchQueue.main.async { onStats(snapshot) }
+            }
         }
-        timer.resume()
-        statsTimer = timer
     }
 
-    private func publishState(_ state: LinkState) {
-        DispatchQueue.main.async { self.onState?(state) }
+    // MARK: - Publishing
+
+    private func publish(_ state: LinkState) {
+        guard state != lastPublishedState else { return }
+        lastPublishedState = state
+        if let onState {
+            DispatchQueue.main.async { onState(state) }
+        }
     }
 
     private func publishHint(_ hint: String?) {
-        DispatchQueue.main.async { self.onHint?(hint) }
+        if let onHint {
+            DispatchQueue.main.async { onHint(hint) }
+        }
+    }
+
+    private func reportIfActionable(_ error: Error) {
+        guard let waError = (error as? NWError)?.wifiAware else { return }
+        if case .noPairedDevices = waError {
+            publish(.unpaired)
+        }
     }
 }

@@ -1,4 +1,7 @@
+import DeviceDiscoveryUI
+import Network
 import SwiftUI
+import WiFiAware
 
 struct ContentView: View {
     @EnvironmentObject private var intercom: IntercomController
@@ -15,6 +18,9 @@ struct ContentView: View {
             VStack(spacing: 24) {
                 header
                 statusCard
+                if showPairingCard {
+                    pairingCard
+                }
                 Spacer()
                 muteButton
                 Spacer()
@@ -30,7 +36,7 @@ struct ContentView: View {
             Text("BTPhone")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
-            Text("This phone: \(intercom.localDisplayName)")
+            Text(intercom.isPaired ? "Paired" : "Not paired yet")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -100,6 +106,82 @@ struct ContentView: View {
         .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
     }
 
+    // MARK: - Pairing
+
+    private var showPairingCard: Bool {
+        if !intercom.isPaired { return true }
+        if case .unpaired = intercom.linkState { return true }
+        return false
+    }
+
+    /// One phone taps "Be discoverable", the other taps "Find other phone".
+    private var pairingCard: some View {
+        VStack(spacing: 14) {
+            Text("Pair the two phones once")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+            Text("On one phone tap Be discoverable, on the other tap Find other phone.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 12) {
+                if let publishable = WAPublishableService.allServices[PeerLink.serviceName] {
+                    DevicePairingView(
+                        WAPublisherListener.wifiAware(
+                            .connecting(to: publishable, from: .userSpecifiedDevices, datapath: .realtime)
+                        )
+                    ) {
+                        pairingButtonLabel("dot.radiowaves.left.and.right", "Be discoverable")
+                    } fallback: {
+                        pairingUnavailableLabel
+                    }
+                }
+                if let subscribable = WASubscribableService.allServices[PeerLink.serviceName] {
+                    DevicePicker(
+                        WASubscriberBrowser.wifiAware(
+                            .connecting(to: .userSpecifiedDevices, from: subscribable)
+                        ),
+                        onSelect: { _ in
+                            // Pairing done; PeerLink's paired-device monitor
+                            // picks it up and connects automatically.
+                        },
+                        label: {
+                            pairingButtonLabel("magnifyingglass", "Find other phone")
+                        },
+                        fallback: {
+                            pairingUnavailableLabel
+                        }
+                    )
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func pairingButtonLabel(_ icon: String, _ title: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.title3)
+            Text(title)
+                .font(.footnote.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color.blue.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var pairingUnavailableLabel: some View {
+        Text("Wi-Fi Aware unavailable")
+            .font(.footnote)
+            .foregroundStyle(.red)
+    }
+
+    // MARK: - Mute
+
     // Oversized target so it works with motorcycle gloves.
     private var muteButton: some View {
         Button {
@@ -137,6 +219,8 @@ struct ContentView: View {
         return intercom.audioActive ? .green : .gray
     }
 
+    // MARK: - Stats
+
     private var statsFooter: some View {
         HStack(spacing: 18) {
             statItem(
@@ -162,7 +246,8 @@ struct ContentView: View {
 
     private var statusColor: Color {
         switch intercom.linkState {
-        case .stopped: return .gray
+        case .stopped, .unsupported: return .gray
+        case .unpaired: return .blue
         case .searching: return .orange
         case .connecting: return .yellow
         case .connected:
@@ -174,6 +259,10 @@ struct ContentView: View {
         switch intercom.linkState {
         case .stopped:
             return "Stopped"
+        case .unsupported:
+            return "This iPhone doesn't support Wi-Fi Aware"
+        case .unpaired:
+            return "Pair with the other phone to start"
         case .searching:
             return intercom.stats.receivingAudio
                 ? "Receiving audio — reconnecting…"
