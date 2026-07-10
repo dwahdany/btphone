@@ -1,0 +1,39 @@
+name: BTPhone
+options:
+  bundleIdPrefix: dev.wahdany
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  BTPhone:
+    type: application
+    platform: iOS
+    sources:
+      - BTPhone
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.wahdany.btphone
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        # Set your Apple developer team ID here (or pick the team in
+        # Xcode -> target BTPhone -> Signing & Capabilities):
+        # DEVELOPMENT_TEAM: XXXXXXXXXX
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: "1.0"
+    info:
+      path: BTPhone/Info.plist
+      properties:
+        CFBundleDisplayName: BTPhone
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: "BTPhone streams your voice to the other rider's phone."
+        NSLocalNetworkUsageDescription: "BTPhone connects directly to the other phone over peer-to-peer Wi-Fi. No data leaves the two phones."
+        NSBonjourServices:
+          - _btphone._udp
+        UIBackgroundModes:
+          - audio
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: true
+        ITSAppUsesNonExemptEncryption: false
