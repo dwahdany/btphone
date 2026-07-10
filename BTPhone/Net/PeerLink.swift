@@ -71,6 +71,11 @@ actor PeerLink {
     private var stats = Stats()
     private var lastAudioDate: Date?
     private var lastKeepaliveDate: Date?
+    // Send-side liveness: the peer's ACKs echo the highest sequence it
+    // received from us. As long as that value keeps changing, our outbound
+    // datapath demonstrably delivers.
+    private var lastAckedValue: UInt32?
+    private var lastAckProgressDate: Date?
     private var lossHistory: [(received: Int, lost: Int)] = []
     private var lastTotals: (received: Int, lost: Int) = (0, 0)
 
@@ -159,6 +164,8 @@ actor PeerLink {
         stats = Stats()
         lastAudioDate = nil
         lastKeepaliveDate = nil
+        lastAckedValue = nil
+        lastAckProgressDate = nil
         lossHistory = []
         lastTotals = (0, 0)
         publish(.stopped)
@@ -222,6 +229,13 @@ actor PeerLink {
         }
     }
 
+    // NetworkConnection has no close()/cancel(); teardown happens when the
+    // last reference drops. That only works if NOTHING awaits on the
+    // connection — a send() parked on a never-establishing connection keeps
+    // it (and its Wi-Fi Aware datapath) alive forever. Hence the invariant
+    // throughout this file: only ever await send()/receive() on a .ready
+    // connection, and drive establishment with the explicit start().
+
     private func adoptInbound(_ connection: NetworkConnection<UDP>) {
         guard started else { return }
         Self.log.info("listener: adopted inbound connection")
@@ -267,9 +281,18 @@ actor PeerLink {
         stats.packetsReceived += 1
 
         let payload = data.dropFirst(Wire.headerBytes)
-        if payload.isEmpty {
+        switch payload.count {
+        case 0:
             lastKeepaliveDate = Date() // peer is muted but alive
-        } else {
+        case Wire.ackBytes:
+            let acked = payload.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }.bigEndian
+            // Any change counts as progress (a peer app restart resyncs and
+            // can make the value jump backwards).
+            if acked != Wire.ackNone && acked != lastAckedValue {
+                lastAckedValue = acked
+                lastAckProgressDate = Date()
+            }
+        default:
             lastAudioDate = Date()
             onPayload?(payload)
         }
@@ -323,30 +346,58 @@ actor PeerLink {
             guard let self else { return }
             Task { await self.outboundStateChanged(conn, isReady: state == .ready, peer: peer) }
         }
+        // A UDP connection establishes on first use. Drive that from a
+        // dedicated throwaway task that nothing awaits: the long-lived
+        // sender/stats loops must never park on a connection that might
+        // never come up (see invariant above).
+        var hello = withUnsafeBytes(of: txSequence.bigEndian) { Data($0) }
+        hello.append(
+            withUnsafeBytes(of: (highestRxSequence ?? Wire.ackNone).bigEndian) { Data($0) }
+        )
+        txSequence &+= 1
+        let establish = Task { try? await connection.send(hello) }
 
-        // Mark the flow usable immediately: the connection is established
-        // lazily by its first send, so the sender loop (50 frames/s, or
-        // 2 keepalives/s while muted) is what actually drives it up.
-        // Gating sends on .ready would deadlock — nothing would ever
-        // establish the datapath.
         outbound = connection
         outboundBroken = false
+        outboundReady = false
+
+        // Wait (bounded) for the datapath; if it never comes up, drop the
+        // connection and browse again.
+        var waitedSeconds = 0
+        while started && !Task.isCancelled {
+            let state = connection.state
+            if state == .ready { break }
+            if case .failed(let error) = state {
+                establish.cancel()
+                outbound = nil
+                throw error
+            }
+            if case .cancelled = state {
+                establish.cancel()
+                outbound = nil
+                return
+            }
+            waitedSeconds += 1
+            if waitedSeconds >= 20 {
+                Self.log.error("outbound: never became ready, giving up")
+                establish.cancel()
+                outbound = nil
+                return
+            }
+            try await Task.sleep(for: .seconds(1))
+        }
+        guard started, !Task.isCancelled else {
+            establish.cancel()
+            outbound = nil
+            return
+        }
         outboundReady = true
 
-        // Hold this flow until it breaks (send failure or state change);
-        // the framework fails the connection when the peer goes away.
-        // If it never comes up at all, give up after 20 s and re-browse.
-        var secondsWithoutReady = 0
+        // Hold this flow until it breaks (send failure, state change, or
+        // ACK-liveness); the framework fails the connection when the peer
+        // genuinely goes away.
         while started && !Task.isCancelled && !outboundBroken {
-            let state = connection.state
-            if state == .ready {
-                secondsWithoutReady = 0
-            } else {
-                if case .failed = state { break }
-                if case .cancelled = state { break }
-                secondsWithoutReady += 1
-                if secondsWithoutReady >= 20 { break }
-            }
+            if connection.state != .ready { break }
             try await Task.sleep(for: .seconds(1))
         }
         Self.log.info("outbound: flow ended (broken=\(self.outboundBroken), state=\(String(describing: connection.state), privacy: .public))")
@@ -368,7 +419,8 @@ actor PeerLink {
 
     private func senderLoop() async {
         for await frame in outboxStream {
-            guard started, outboundReady, let connection = outbound else { continue }
+            guard started, outboundReady, let connection = outbound,
+                  connection.state == .ready else { continue }
             var datagram = withUnsafeBytes(of: txSequence.bigEndian) { Data($0) }
             datagram.append(frame)
             txSequence &+= 1
@@ -391,23 +443,31 @@ actor PeerLink {
             guard started else { return }
             let now = Date()
 
-            // Liveness: our protocol guarantees inbound traffic (frames or
-            // mute keepalives) whenever the peer is alive and connected to
-            // us. A UDP datapath keeps reporting "ready" and swallowing
-            // sends after the peer's process dies (e.g. app relaunch), so
-            // "connected but silent for 10 s" means the flow is a zombie —
-            // tear it down and reconnect through a fresh browse.
-            if outboundReady, let since = outboundReadySince,
-               now.timeIntervalSince(since) > 10 {
-                let lastInbound = max(
-                    lastAudioDate ?? .distantPast,
-                    lastKeepaliveDate ?? .distantPast
+            // Send an ACK over the outbound once per second, regardless of
+            // audio state: it keeps the flow alive and gives the peer proof
+            // its packets arrive. Only on a .ready connection — a send
+            // awaiting establishment would park forever (see invariant).
+            if let connection = outbound, connection.state == .ready {
+                var datagram = withUnsafeBytes(of: txSequence.bigEndian) { Data($0) }
+                datagram.append(
+                    withUnsafeBytes(of: (highestRxSequence ?? Wire.ackNone).bigEndian) { Data($0) }
                 )
-                if now.timeIntervalSince(lastInbound) > 10 {
-                    Self.log.error("liveness: connected but no inbound traffic for 10s — reconnecting")
-                    outboundBroken = true
-                    outboundReady = false
-                }
+                txSequence &+= 1
+                Task { try? await connection.send(datagram) }
+            }
+
+            // Send-side liveness: a zombie datapath (peer process died and
+            // came back) keeps reporting "ready" and swallowing sends. If
+            // the peer's ACKs stop confirming our packets for 15 s, our
+            // outbound is dead — tear it down and reconnect through a
+            // fresh browse. (We send at least the 1/s ACKs above, so the
+            // acked value must keep moving on a healthy flow.)
+            if outboundReady, let since = outboundReadySince,
+               now.timeIntervalSince(since) > 15,
+               now.timeIntervalSince(lastAckProgressDate ?? .distantPast) > 15 {
+                Self.log.error("liveness: no ACK progress for 15s — reconnecting outbound")
+                outboundBroken = true
+                outboundReady = false
             }
 
             stats.receivingAudio =

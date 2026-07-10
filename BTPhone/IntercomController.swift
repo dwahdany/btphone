@@ -6,6 +6,7 @@ import os
 /// Glues the audio pipeline to the network link and exposes UI state.
 @MainActor
 final class IntercomController: ObservableObject {
+    private static let log = Logger(subsystem: "com.wahdany.btphone", category: "Audio")
     @Published private(set) var linkState: PeerLink.LinkState = .stopped
     @Published private(set) var stats = PeerLink.Stats()
     @Published private(set) var bufferMilliseconds = 0
@@ -133,8 +134,10 @@ final class IntercomController: ObservableObject {
         do {
             try audio.start()
             lastError = nil
+            Self.log.info("audio started, engineRunning=\(self.audio.engineRunning)")
         } catch {
             lastError = "Audio failed to start: \(error.localizedDescription)"
+            Self.log.error("audio start failed: \(error, privacy: .public)")
         }
         audioActive = audio.isRunning && audio.engineRunning
         if audioActive {
