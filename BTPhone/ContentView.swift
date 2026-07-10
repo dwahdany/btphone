@@ -18,7 +18,6 @@ struct ContentView: View {
                 Spacer()
                 muteButton
                 Spacer()
-                volumeSlider
                 statsFooter
             }
             .padding(24)
@@ -136,17 +135,6 @@ struct ContentView: View {
     private var muteButtonShadow: Color {
         if intercom.isMuted { return .red }
         return intercom.audioActive ? .green : .gray
-    }
-
-    private var volumeSlider: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "speaker.fill")
-                .foregroundStyle(.secondary)
-            Slider(value: $intercom.volume, in: 0...1)
-                .tint(.white)
-            Image(systemName: "speaker.wave.3.fill")
-                .foregroundStyle(.secondary)
-        }
     }
 
     private var statsFooter: some View {

@@ -23,10 +23,6 @@ final class IntercomController: ObservableObject {
         }
     }
 
-    @Published var volume: Double = 1.0 {
-        didSet { audio.outputVolume = Float(volume) }
-    }
-
     var localDisplayName: String { link.localDisplayName }
 
     private let audio = IntercomAudio()

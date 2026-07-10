@@ -44,10 +44,6 @@ final class IntercomAudio {
         interleaved: false
     )!
 
-    var outputVolume: Float = 1.0 {
-        didSet { engine.mainMixerNode.outputVolume = outputVolume }
-    }
-
     var isMicMuted: Bool = false {
         didSet {
             if engine.isRunning {
@@ -112,7 +108,6 @@ final class IntercomAudio {
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: wireFloatFormat)
         sourceNode = node
-        engine.mainMixerNode.outputVolume = outputVolume
 
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {

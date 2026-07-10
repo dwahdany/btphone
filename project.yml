@@ -1,6 +1,6 @@
 name: BTPhone
 options:
-  bundleIdPrefix: dev.wahdany
+  bundleIdPrefix: com.wahdany
   deploymentTarget:
     iOS: "17.0"
 settings:
@@ -14,12 +14,10 @@ targets:
       - BTPhone
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.wahdany.btphone
+        PRODUCT_BUNDLE_IDENTIFIER: com.wahdany.btphone
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
-        # Set your Apple developer team ID here (or pick the team in
-        # Xcode -> target BTPhone -> Signing & Capabilities):
-        # DEVELOPMENT_TEAM: XXXXXXXXXX
+        DEVELOPMENT_TEAM: 8HAR42CEXZ
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: "1.0"
     info:
