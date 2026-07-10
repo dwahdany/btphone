@@ -67,6 +67,19 @@ final class IntercomController: ObservableObject {
         Task { await link.restart() }
     }
 
+    /// Called when the app returns to the foreground: if the link is limping
+    /// (a stale attempt from before backgrounding), rebuild it right away so
+    /// "look at the phone" doubles as the recovery gesture.
+    func nudgeLinkIfDisconnected() {
+        guard pipelinesStarted else { return }
+        switch linkState {
+        case .searching, .connecting:
+            restartLink()
+        default:
+            break
+        }
+    }
+
     func restartAudio() {
         restartWork?.cancel()
         restartWork = nil

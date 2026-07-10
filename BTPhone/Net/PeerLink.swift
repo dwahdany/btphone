@@ -361,8 +361,10 @@ actor PeerLink {
         outboundBroken = false
         outboundReady = false
 
-        // Wait (bounded) for the datapath; if it never comes up, drop the
-        // connection and browse again.
+        // Wait (bounded) for the datapath. Healthy establishment takes well
+        // under 1.5 s; an attempt stuck in .preparing usually means the
+        // peer's daemon still holds the previous session's dead flow, and
+        // the NEXT attempt then succeeds immediately — so give up fast.
         var waitedSeconds = 0
         while started && !Task.isCancelled {
             let state = connection.state
@@ -378,7 +380,7 @@ actor PeerLink {
                 return
             }
             waitedSeconds += 1
-            if waitedSeconds >= 20 {
+            if waitedSeconds >= 5 {
                 Self.log.error("outbound: never became ready, giving up")
                 establish.cancel()
                 outbound = nil
@@ -458,14 +460,14 @@ actor PeerLink {
 
             // Send-side liveness: a zombie datapath (peer process died and
             // came back) keeps reporting "ready" and swallowing sends. If
-            // the peer's ACKs stop confirming our packets for 15 s, our
+            // the peer's ACKs stop confirming our packets for 10 s, our
             // outbound is dead — tear it down and reconnect through a
             // fresh browse. (We send at least the 1/s ACKs above, so the
             // acked value must keep moving on a healthy flow.)
             if outboundReady, let since = outboundReadySince,
-               now.timeIntervalSince(since) > 15,
-               now.timeIntervalSince(lastAckProgressDate ?? .distantPast) > 15 {
-                Self.log.error("liveness: no ACK progress for 15s — reconnecting outbound")
+               now.timeIntervalSince(since) > 10,
+               now.timeIntervalSince(lastAckProgressDate ?? .distantPast) > 10 {
+                Self.log.error("liveness: no ACK progress for 10s — reconnecting outbound")
                 outboundBroken = true
                 outboundReady = false
             }

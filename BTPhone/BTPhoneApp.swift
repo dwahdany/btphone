@@ -17,6 +17,7 @@ struct BTPhoneApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         UIApplication.shared.isIdleTimerDisabled = true
+                        intercom.nudgeLinkIfDisconnected()
                     }
                 }
         }
