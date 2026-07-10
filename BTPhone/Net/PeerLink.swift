@@ -64,6 +64,7 @@ actor PeerLink {
     private var outbound: NetworkConnection<UDP>?
     private var outboundReady = false
     private var outboundBroken = false
+    private var outboundReadySince: Date?
 
     private var txSequence: UInt32 = 0
     private var highestRxSequence: UInt32?
@@ -350,6 +351,7 @@ actor PeerLink {
         }
         Self.log.info("outbound: flow ended (broken=\(self.outboundBroken), state=\(String(describing: connection.state), privacy: .public))")
         outboundReady = false
+        outboundReadySince = nil
         outbound = nil
     }
 
@@ -358,6 +360,7 @@ actor PeerLink {
     ) {
         guard outbound === connection else { return }
         if isReady {
+            outboundReadySince = Date()
             publish(.connected(peer: peer))
             publishHint(nil)
         }
@@ -387,6 +390,26 @@ actor PeerLink {
             try? await Task.sleep(for: .seconds(1))
             guard started else { return }
             let now = Date()
+
+            // Liveness: our protocol guarantees inbound traffic (frames or
+            // mute keepalives) whenever the peer is alive and connected to
+            // us. A UDP datapath keeps reporting "ready" and swallowing
+            // sends after the peer's process dies (e.g. app relaunch), so
+            // "connected but silent for 10 s" means the flow is a zombie —
+            // tear it down and reconnect through a fresh browse.
+            if outboundReady, let since = outboundReadySince,
+               now.timeIntervalSince(since) > 10 {
+                let lastInbound = max(
+                    lastAudioDate ?? .distantPast,
+                    lastKeepaliveDate ?? .distantPast
+                )
+                if now.timeIntervalSince(lastInbound) > 10 {
+                    Self.log.error("liveness: connected but no inbound traffic for 10s — reconnecting")
+                    outboundBroken = true
+                    outboundReady = false
+                }
+            }
+
             stats.receivingAudio =
                 lastAudioDate.map { now.timeIntervalSince($0) < 1.5 } ?? false
             // Wider window than receivingAudio: keepalives pause for a
