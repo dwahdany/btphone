@@ -167,6 +167,13 @@ final class IntercomAudio {
         isRunning = false
     }
 
+    /// Release the audio hardware entirely (mic indicator goes away, the
+    /// app becomes suspendable). Only for a deliberate user stop — never
+    /// during transient restarts, where deactivation churns the route.
+    func deactivateSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
     /// Feed one received wire payload (Int16 little-endian samples) into the
     /// playback path. Called from the network receive task.
     func enqueuePlayback(_ payload: Data) {

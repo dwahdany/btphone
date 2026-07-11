@@ -10,13 +10,13 @@ struct BTPhoneApp: App {
             ContentView()
                 .environmentObject(intercom)
                 .onAppear {
-                    // The phone rides in a pocket or mount; never auto-lock.
-                    UIApplication.shared.isIdleTimerDisabled = true
                     intercom.start()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
-                        UIApplication.shared.isIdleTimerDisabled = true
+                        // While a session runs the phone rides in a pocket
+                        // or mount; never auto-lock. Off-session, lock away.
+                        UIApplication.shared.isIdleTimerDisabled = intercom.sessionActive
                         intercom.nudgeLinkIfDisconnected()
                     }
                 }

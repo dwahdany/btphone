@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import SwiftUI
+import UIKit
 import os
 
 /// Glues the audio pipeline to the network link and exposes UI state.
@@ -17,6 +18,9 @@ final class IntercomController: ObservableObject {
     /// False whenever the audio engine is not actually producing/consuming
     /// audio — the UI must never claim LIVE while this is false.
     @Published private(set) var audioActive = false
+    /// Whether the intercom session is deliberately running. When false the
+    /// mic is released, the link is down, and auto-lock is back on.
+    @Published private(set) var sessionActive = false
 
     @Published var isMuted = false {
         didSet {
@@ -71,13 +75,35 @@ final class IntercomController: ObservableObject {
     /// (a stale attempt from before backgrounding), rebuild it right away so
     /// "look at the phone" doubles as the recovery gesture.
     func nudgeLinkIfDisconnected() {
-        guard pipelinesStarted else { return }
+        guard pipelinesStarted, sessionActive else { return }
         switch linkState {
         case .searching, .connecting:
             restartLink()
         default:
             break
         }
+    }
+
+    func startIntercom() {
+        guard pipelinesStarted, !sessionActive else { return }
+        sessionActive = true
+        UIApplication.shared.isIdleTimerDisabled = true
+        startAudio()
+        let link = link
+        Task { await link.start() }
+    }
+
+    func stopIntercom() {
+        guard sessionActive else { return }
+        sessionActive = false
+        restartWork?.cancel()
+        restartWork = nil
+        audio.stop()
+        audio.deactivateSession()
+        audioActive = false
+        let link = link
+        Task { await link.stop() }
+        UIApplication.shared.isIdleTimerDisabled = false
     }
 
     func restartAudio() {
@@ -134,12 +160,12 @@ final class IntercomController: ObservableObject {
                     MainActor.assumeIsolated { self?.isPaired = paired }
                 }
             )
-            await link.start()
+            // Only start once the callbacks are wired.
+            self.startIntercom()
         }
 
         installAudioObservers()
         installWatchdog()
-        startAudio()
     }
 
     private func startAudio() {
@@ -184,7 +210,7 @@ final class IntercomController: ObservableObject {
     }
 
     private func watchdogTick() {
-        guard pipelinesStarted else { return }
+        guard pipelinesStarted, sessionActive else { return }
         audioActive = audio.isRunning && audio.engineRunning
         if let interruptedAt {
             // Give the interrupting audio (a phone call) 15 s of grace; if
@@ -238,7 +264,7 @@ final class IntercomController: ObservableObject {
             guard let rawReason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
                   let reason = AVAudioSession.RouteChangeReason(rawValue: rawReason) else { return }
             MainActor.assumeIsolated {
-                guard let self, self.interruptedAt == nil,
+                guard let self, self.sessionActive, self.interruptedAt == nil,
                       Date() >= self.suppressTriggersUntil else { return }
                 switch reason {
                 case .newDeviceAvailable, .oldDeviceUnavailable, .override, .routeConfigurationChange:
@@ -262,7 +288,7 @@ final class IntercomController: ObservableObject {
                 // right away even if the restart below is suppressed (the
                 // watchdog heals it within 2 s).
                 self.audioActive = self.audio.isRunning && self.audio.engineRunning
-                guard self.audio.isRunning, self.interruptedAt == nil,
+                guard self.sessionActive, self.audio.isRunning, self.interruptedAt == nil,
                       Date() >= self.suppressTriggersUntil else { return }
                 self.scheduleAudioRestart()
             }
@@ -274,7 +300,8 @@ final class IntercomController: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.scheduleAudioRestart()
+                guard let self, self.sessionActive else { return }
+                self.scheduleAudioRestart()
             }
         })
     }

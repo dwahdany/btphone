@@ -22,9 +22,12 @@ struct ContentView: View {
                     pairingCard
                 }
                 Spacer()
-                muteButton
+                bigButton
                 Spacer()
                 statsFooter
+                if intercom.sessionActive {
+                    endButton
+                }
             }
             .padding(24)
         }
@@ -69,7 +72,7 @@ struct ContentView: View {
                     .foregroundStyle(.orange)
                     .multilineTextAlignment(.center)
             }
-            if !intercom.audioActive && !intercom.micPermissionDenied {
+            if intercom.sessionActive && !intercom.audioActive && !intercom.micPermissionDenied {
                 HStack(spacing: 8) {
                     Text("Audio is stopped")
                         .font(.footnote)
@@ -180,41 +183,69 @@ struct ContentView: View {
             .foregroundStyle(.red)
     }
 
-    // MARK: - Mute
+    // MARK: - Big button (start / mute)
 
-    // Oversized target so it works with motorcycle gloves.
-    private var muteButton: some View {
+    // Oversized target so it works with motorcycle gloves. When the session
+    // is stopped it starts the intercom; while running it toggles mute —
+    // ending the session is deliberately a separate, smaller button.
+    private var bigButton: some View {
         Button {
-            intercom.isMuted.toggle()
+            if intercom.sessionActive {
+                intercom.isMuted.toggle()
+            } else {
+                intercom.startIntercom()
+            }
         } label: {
             VStack(spacing: 12) {
-                Image(systemName: intercom.isMuted ? "mic.slash.fill" : "mic.fill")
+                Image(systemName: bigButtonIcon)
                     .font(.system(size: 64, weight: .bold))
-                Text(muteButtonLabel)
+                Text(bigButtonLabel)
                     .font(.headline.weight(.heavy))
                     .tracking(2)
             }
             .foregroundStyle(.white)
             .frame(width: 220, height: 220)
-            .background(Circle().fill(muteButtonStyle))
-            .shadow(color: muteButtonShadow.opacity(0.4), radius: 24)
+            .background(Circle().fill(bigButtonStyle))
+            .shadow(color: bigButtonShadow.opacity(0.4), radius: 24)
         }
         .buttonStyle(.plain)
     }
 
-    private var muteButtonLabel: String {
+    private var endButton: some View {
+        Button {
+            intercom.stopIntercom()
+        } label: {
+            Label("End intercom", systemImage: "power")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var bigButtonIcon: String {
+        if !intercom.sessionActive { return "power" }
+        return intercom.isMuted ? "mic.slash.fill" : "mic.fill"
+    }
+
+    private var bigButtonLabel: String {
+        if !intercom.sessionActive { return "START" }
         if intercom.isMuted { return "MUTED" }
         return intercom.audioActive ? "LIVE" : "AUDIO OFF"
     }
 
-    private var muteButtonStyle: AnyShapeStyle {
+    private var bigButtonStyle: AnyShapeStyle {
+        if !intercom.sessionActive { return AnyShapeStyle(Color.blue.gradient) }
         if intercom.isMuted { return AnyShapeStyle(Color.red.gradient) }
         return intercom.audioActive
             ? AnyShapeStyle(Color.green.gradient)
             : AnyShapeStyle(Color.gray.gradient)
     }
 
-    private var muteButtonShadow: Color {
+    private var bigButtonShadow: Color {
+        if !intercom.sessionActive { return .blue }
         if intercom.isMuted { return .red }
         return intercom.audioActive ? .green : .gray
     }
@@ -258,7 +289,7 @@ struct ContentView: View {
     private var statusText: String {
         switch intercom.linkState {
         case .stopped:
-            return "Stopped"
+            return "Not running — tap START"
         case .unsupported:
             return "This iPhone doesn't support Wi-Fi Aware"
         case .unpaired:
