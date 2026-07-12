@@ -22,12 +22,27 @@ final class IntercomController: ObservableObject {
     /// mic is released, the link is down, and auto-lock is back on.
     @Published private(set) var sessionActive = false
 
+    /// When the running free session will be cut off; nil when unlimited.
+    @Published private(set) var freeSessionEndsAt: Date?
+    /// Flips true when the free limit ends a session; drives the paywall.
+    @Published var sessionLimitReached = false
+
     @Published var isMuted = false {
         didSet {
             audio.isMicMuted = isMuted
             muted = isMuted
         }
     }
+
+    /// Set by the app at launch; decides whether free-session limits apply.
+    /// The store resolves its gate asynchronously (network), usually AFTER
+    /// the launch session auto-starts — so the limit is armed reactively
+    /// from the gate subscription, anchored to the session's start time.
+    weak var entitlements: EntitlementStore? {
+        didSet { observeGate() }
+    }
+    private var gateCancellable: AnyCancellable?
+    private var sessionStartedAt: Date?
 
     private let audio = IntercomAudio()
     private let link = PeerLink()
@@ -87,6 +102,11 @@ final class IntercomController: ObservableObject {
     func startIntercom() {
         guard pipelinesStarted, !sessionActive else { return }
         sessionActive = true
+        sessionLimitReached = false
+        sessionStartedAt = Date()
+        if entitlements?.limitsSessions == true {
+            armSessionLimit(startedAt: Date())
+        }
         UIApplication.shared.isIdleTimerDisabled = true
         startAudio()
         let link = link
@@ -96,6 +116,8 @@ final class IntercomController: ObservableObject {
     func stopIntercom() {
         guard sessionActive else { return }
         sessionActive = false
+        sessionStartedAt = nil
+        disarmSessionLimit()
         restartWork?.cancel()
         restartWork = nil
         audio.stop()
@@ -104,6 +126,54 @@ final class IntercomController: ObservableObject {
         let link = link
         Task { await link.stop() }
         UIApplication.shared.isIdleTimerDisabled = false
+    }
+
+    private var limitTimer: Timer?
+    private static let freeSessionSeconds: TimeInterval = 15 * 60
+
+    private func observeGate() {
+        gateCancellable = entitlements?.$gate.sink { [weak self] gate in
+            MainActor.assumeIsolated { self?.gateChanged(gate) }
+        }
+    }
+
+    private func gateChanged(_ gate: EntitlementStore.Gate) {
+        switch gate {
+        case .locked:
+            // Arm the limit for an already-running session, anchored to its
+            // real start so a slow store lookup doesn't extend the free time.
+            if sessionActive, limitTimer == nil {
+                armSessionLimit(startedAt: sessionStartedAt ?? Date())
+            }
+        case .unlocked, .storeUnavailable:
+            // A purchase completing mid-session lifts the running limit
+            // immediately — a paying rider must never be cut off.
+            disarmSessionLimit()
+        case .unknown:
+            break
+        }
+    }
+
+    private func armSessionLimit(startedAt: Date) {
+        limitTimer?.invalidate()
+        let ends = startedAt.addingTimeInterval(Self.freeSessionSeconds)
+        freeSessionEndsAt = ends
+        limitTimer = Timer.scheduledTimer(
+            withTimeInterval: max(1, ends.timeIntervalSinceNow), repeats: false
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.sessionActive,
+                      self.entitlements?.limitsSessions == true else { return }
+                self.stopIntercom()
+                self.sessionLimitReached = true
+            }
+        }
+    }
+
+    private func disarmSessionLimit() {
+        limitTimer?.invalidate()
+        limitTimer = nil
+        freeSessionEndsAt = nil
     }
 
     func restartAudio() {
@@ -175,7 +245,7 @@ final class IntercomController: ObservableObject {
             lastError = nil
             Self.log.info("audio started, engineRunning=\(self.audio.engineRunning)")
         } catch {
-            lastError = "Audio failed to start: \(error.localizedDescription)"
+            lastError = String(localized: "Audio failed to start: \(error.localizedDescription)")
             Self.log.error("audio start failed: \(error, privacy: .public)")
         }
         audioActive = audio.isRunning && audio.engineRunning

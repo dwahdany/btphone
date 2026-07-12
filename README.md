@@ -1,4 +1,7 @@
-# BTPhone
+# TwoUp
+
+*(formerly BTPhone — the bundle id `com.wahdany.btphone` and target name keep
+the old name so existing installs and the Wi-Fi Aware pairing survive)*
 
 A rider/passenger intercom for two iPhones. The phones talk **directly to each
 other over Wi-Fi Aware** (iOS 26's peer-to-peer Wi-Fi framework) — no
@@ -34,8 +37,8 @@ launch.
 ## Usage
 
 1. Pair each phone with its own helmet headset **before** starting the app.
-   BTPhone requests HFP (hands-free) routing so the helmet's boom mic is used.
-2. **One-time pairing:** open BTPhone on both phones; on one tap
+   TwoUp requests HFP (hands-free) routing so the helmet's boom mic is used.
+2. **One-time pairing:** open TwoUp on both phones; on one tap
    *Be discoverable*, on the other tap *Find other phone* and select it.
    The pairing persists (manage it in iOS Settings if you ever want to
    remove it).
@@ -43,6 +46,24 @@ launch.
    muted, the other phone shows "The other phone is muted" instead of a
    connection warning.
 4. Lock the phone and pocket it — the link and audio keep running.
+
+## Free tier & unlock
+
+Sessions are free but end after 15 minutes (restart as often as you like);
+a one-time lifetime unlock (StoreKit 2 non-consumable, Family Sharing)
+removes the limit. The gate fails open: until the product exists in App
+Store Connect — including all dev builds — nothing is limited. The local
+`Configuration.storekit` file feeds Xcode's StoreKit test environment when
+running via the scheme. UI ships localized in English and German
+(`Localizable.xcstrings`).
+
+## Field results
+
+First real ride (July 2026, rider + passenger, phones locked in pockets,
+Bluetooth helmet headsets): a session of ~350,000 received packets — just
+under two hours of continuous audio at 50 packets/s — with battery drain low
+enough that neither phone noticed it. Precise %/hour and open-road range
+numbers still to be collected.
 
 ## Wire protocol
 
@@ -62,10 +83,17 @@ whatever the Bluetooth helmet headsets add (HFP typically 50–100 ms per side).
   Sustained loss above a few percent means radio trouble — distance or heavy
   2.4/5 GHz congestion.
 - **Wrong mic in use:** iOS picks the route; reconnecting the headset while
-  BTPhone is open makes it re-route — the app rebuilds its audio pipeline
+  TwoUp is open makes it re-route — the app rebuilds its audio pipeline
   automatically on route changes, and a watchdog revives audio if anything
   kills it (the big button shows AUDIO OFF whenever audio isn't actually
   running).
+- **New passenger or new phone:** tap *Pair a different phone* in the status
+  card — the pairing UI is always reachable. Old pairings can only be
+  removed in iOS Settings (there is no unpair API).
+- **Music:** playback from other apps pauses while a session runs and
+  resumes automatically when you end it. Mixing music into the session isn't
+  offered: over a Bluetooth helmet headset the intercom holds the HFP voice
+  link, which blocks high-quality A2DP — music would be call-quality mono.
 - **Battery:** real-time Wi-Fi Aware mode plus continuous audio costs some
   battery, but you can ride with the screen locked, which more than makes up
   for it.

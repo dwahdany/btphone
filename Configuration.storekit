@@ -1,0 +1,38 @@
+{
+  "identifier" : "B7D9A2E4-1C63-4F8B-9E5A-2D7C4B1F8A30",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : true,
+      "internalID" : "1A2B3C4D",
+      "localizations" : [
+        {
+          "description" : "Unlimited intercom sessions, forever.",
+          "displayName" : "Lifetime Unlock",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Unbegrenzte Intercom-Sitzungen, für immer.",
+          "displayName" : "Lebenslange Freischaltung",
+          "locale" : "de_DE"
+        }
+      ],
+      "productID" : "com.wahdany.btphone.lifetime",
+      "referenceName" : "Lifetime Unlock",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

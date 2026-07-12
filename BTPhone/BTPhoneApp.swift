@@ -3,13 +3,17 @@ import SwiftUI
 @main
 struct BTPhoneApp: App {
     @StateObject private var intercom = IntercomController()
+    @StateObject private var store = EntitlementStore()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(intercom)
+                .environmentObject(store)
                 .onAppear {
+                    store.start()
+                    intercom.entitlements = store
                     intercom.start()
                 }
                 .onChange(of: scenePhase) { _, phase in

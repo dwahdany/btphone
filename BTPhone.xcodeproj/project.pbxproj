@@ -10,9 +10,13 @@
 		1A1827A53E2F334A27A82E8E /* BTPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA25F34F3EB496040DFCDBBB /* BTPhoneApp.swift */; };
 		53AE0DD45B432F1BC36BECF2 /* IntercomAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26BB1D82A27DB96338AE2F83 /* IntercomAudio.swift */; };
 		66C0FDFE38820A03D4F5E308 /* JitterBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1B67BF076EEC2274A11A84 /* JitterBuffer.swift */; };
+		72289C53967D6474FE026CDB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = DA5EE359F095327413855C2D /* InfoPlist.xcstrings */; };
 		82096C86C1E0EE4CCFC8B28E /* PeerLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F18216A5D50A463CDC7560 /* PeerLink.swift */; };
 		8934644BE480DF033B8B2DF8 /* Wire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FCE4D28B6ACB7A8CAF3DF3 /* Wire.swift */; };
 		9D7820CFAEAB61E8385569FF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7EE4182D4F01DDED0BB4101B /* Assets.xcassets */; };
+		C5619727197ACE643AFA7809 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 90F7319F7C6FB0DBCCCB4EE8 /* Localizable.xcstrings */; };
+		CCBF6B216F06F43AB93E65B5 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EAA01ADAFE14B89F6B85D7C /* PaywallView.swift */; };
+		D61BB561FFBE08D947AAFF23 /* EntitlementStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7088443DDD95801AD695F6D5 /* EntitlementStore.swift */; };
 		F758CF365C05A156F64C1EC9 /* IntercomController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CC7E0AADBD27AFC027912E /* IntercomController.swift */; };
 		FDC3049E15A58E7A60592A79 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7591DB3892163A441EF5EF /* ContentView.swift */; };
 /* End PBXBuildFile section */
@@ -23,11 +27,16 @@
 		26BB1D82A27DB96338AE2F83 /* IntercomAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntercomAudio.swift; sourceTree = "<group>"; };
 		53FCE4D28B6ACB7A8CAF3DF3 /* Wire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wire.swift; sourceTree = "<group>"; };
 		5CB31A28EBCB02BF925CF8A1 /* BTPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BTPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7088443DDD95801AD695F6D5 /* EntitlementStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementStore.swift; sourceTree = "<group>"; };
 		7E7591DB3892163A441EF5EF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7EE4182D4F01DDED0BB4101B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8EAA01ADAFE14B89F6B85D7C /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		90F7319F7C6FB0DBCCCB4EE8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		B593814571FFDDF64339D9AA /* Configuration.storekit */ = {isa = PBXFileReference; path = Configuration.storekit; sourceTree = "<group>"; };
 		CAFB0AEBB82C1CF91067F759 /* BTPhone.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BTPhone.entitlements; sourceTree = "<group>"; };
 		CCF85E029A5CD87621E5B1CC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D1F18216A5D50A463CDC7560 /* PeerLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLink.swift; sourceTree = "<group>"; };
+		DA5EE359F095327413855C2D /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		FA25F34F3EB496040DFCDBBB /* BTPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTPhoneApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -40,9 +49,19 @@
 			path = Net;
 			sourceTree = "<group>";
 		};
+		6C4B14631A91FC94303B1AE8 /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				7088443DDD95801AD695F6D5 /* EntitlementStore.swift */,
+				8EAA01ADAFE14B89F6B85D7C /* PaywallView.swift */,
+			);
+			path = Store;
+			sourceTree = "<group>";
+		};
 		764965BC09CA40B86BA93328 = {
 			isa = PBXGroup;
 			children = (
+				B593814571FFDDF64339D9AA /* Configuration.storekit */,
 				C75B563BF66E73CCEE9F8CE5 /* BTPhone */,
 				CBE4F83B6A116FC0F1FD9C10 /* Products */,
 			);
@@ -65,10 +84,13 @@
 				FA25F34F3EB496040DFCDBBB /* BTPhoneApp.swift */,
 				7E7591DB3892163A441EF5EF /* ContentView.swift */,
 				CCF85E029A5CD87621E5B1CC /* Info.plist */,
+				DA5EE359F095327413855C2D /* InfoPlist.xcstrings */,
 				05CC7E0AADBD27AFC027912E /* IntercomController.swift */,
+				90F7319F7C6FB0DBCCCB4EE8 /* Localizable.xcstrings */,
 				53FCE4D28B6ACB7A8CAF3DF3 /* Wire.swift */,
 				98975E4D5368C5C6B5D79DEE /* Audio */,
 				5B6E9AE8A3544818FD099D11 /* Net */,
+				6C4B14631A91FC94303B1AE8 /* Store */,
 			);
 			path = BTPhone;
 			sourceTree = "<group>";
@@ -123,6 +145,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				de,
 				en,
 			);
 			mainGroup = 764965BC09CA40B86BA93328;
@@ -142,6 +165,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D7820CFAEAB61E8385569FF /* Assets.xcassets in Resources */,
+				72289C53967D6474FE026CDB /* InfoPlist.xcstrings in Resources */,
+				C5619727197ACE643AFA7809 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,9 +179,11 @@
 			files = (
 				1A1827A53E2F334A27A82E8E /* BTPhoneApp.swift in Sources */,
 				FDC3049E15A58E7A60592A79 /* ContentView.swift in Sources */,
+				D61BB561FFBE08D947AAFF23 /* EntitlementStore.swift in Sources */,
 				53AE0DD45B432F1BC36BECF2 /* IntercomAudio.swift in Sources */,
 				F758CF365C05A156F64C1EC9 /* IntercomController.swift in Sources */,
 				66C0FDFE38820A03D4F5E308 /* JitterBuffer.swift in Sources */,
+				CCBF6B216F06F43AB93E65B5 /* PaywallView.swift in Sources */,
 				82096C86C1E0EE4CCFC8B28E /* PeerLink.swift in Sources */,
 				8934644BE480DF033B8B2DF8 /* Wire.swift in Sources */,
 			);

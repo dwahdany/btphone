@@ -1,0 +1,282 @@
+{
+  "sourceLanguage" : "en",
+  "version" : "1.0",
+  "strings" : {
+    "Paired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gekoppelt" } }
+      }
+    },
+    "Not paired yet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch nicht gekoppelt" } }
+      }
+    },
+    "The other phone is muted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das andere Telefon ist stummgeschaltet" } }
+      }
+    },
+    "No audio from the other phone — maybe a call or Siri" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein Ton vom anderen Telefon — vielleicht ein Anruf oder Siri" } }
+      }
+    },
+    "Open Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen öffnen" } }
+      }
+    },
+    "Pair a different phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ein anderes Telefon koppeln" } }
+      }
+    },
+    "Hide pairing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kopplung ausblenden" } }
+      }
+    },
+    "Pairing a new phone doesn't remove old ones — manage pairings in iOS Settings." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ein neues Telefon zu koppeln entfernt alte Kopplungen nicht — verwalte sie in den iOS-Einstellungen." } }
+      }
+    },
+    "Multiple phones are paired — TwoUp connects to whichever responds first. Remove old pairings in iOS Settings." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mehrere Telefone sind gekoppelt — TwoUp verbindet sich mit dem, das zuerst antwortet. Entferne alte Kopplungen in den iOS-Einstellungen." } }
+      }
+    },
+    "Can't reach the other phone. Make sure it's nearby with Wi-Fi on and TwoUp open." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das andere Telefon ist nicht erreichbar. Es muss in der Nähe sein, mit eingeschaltetem WLAN und geöffnetem TwoUp." } }
+      }
+    },
+    "Audio is stopped" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Audio ist gestoppt" } }
+      }
+    },
+    "Restart audio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Audio neu starten" } }
+      }
+    },
+    "Microphone access is required. Enable it in Settings → Privacy → Microphone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mikrofonzugriff wird benötigt. Aktiviere ihn unter Einstellungen → Datenschutz → Mikrofon." } }
+      }
+    },
+    "Restart connection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbindung neu aufbauen" } }
+      }
+    },
+    "Pair the two phones once" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die beiden Telefone einmalig koppeln" } }
+      }
+    },
+    "On one phone tap Be discoverable, on the other tap Find other phone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Tippe auf einem Telefon auf „Sichtbar sein“, auf dem anderen auf „Anderes Telefon suchen“." } }
+      }
+    },
+    "Be discoverable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sichtbar sein" } }
+      }
+    },
+    "Find other phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anderes Telefon suchen" } }
+      }
+    },
+    "Wi-Fi Aware unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wi-Fi Aware nicht verfügbar" } }
+      }
+    },
+    "End intercom" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Intercom beenden" } }
+      }
+    },
+    "START" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "START" } }
+      }
+    },
+    "MUTED" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "STUMM" } }
+      }
+    },
+    "LIVE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "LIVE" } }
+      }
+    },
+    "AUDIO OFF" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TON AUS" } }
+      }
+    },
+    "loss" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verlust" } }
+      }
+    },
+    "buffer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Puffer" } }
+      }
+    },
+    "packets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pakete" } }
+      }
+    },
+    "Not running — tap START" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht aktiv — tippe auf START" } }
+      }
+    },
+    "This iPhone doesn't support Wi-Fi Aware" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieses iPhone unterstützt kein Wi-Fi Aware" } }
+      }
+    },
+    "Pair with the other phone to start" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kopple zuerst das andere Telefon" } }
+      }
+    },
+    "Receiving audio — reconnecting…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ton kommt an — verbinde neu …" } }
+      }
+    },
+    "Searching for the other phone…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Suche das andere Telefon …" } }
+      }
+    },
+    "Connecting to %@…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbinde mit %@ …" } }
+      }
+    },
+    "Connected to %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbunden mit %@" } }
+      }
+    },
+    "Audio failed to start: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Audio konnte nicht starten: %@" } }
+      }
+    },
+    "Microphone is not available yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Mikrofon ist noch nicht verfügbar." } }
+      }
+    },
+    "Unsupported microphone format." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht unterstütztes Mikrofonformat." } }
+      }
+    },
+    "paired iPhone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "gekoppeltem iPhone" } }
+      }
+    },
+    "Your free session just ended" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Deine Gratis-Sitzung ist gerade zu Ende gegangen" } }
+      }
+    },
+    "Unlock unlimited sessions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Unbegrenzte Sitzungen freischalten" } }
+      }
+    },
+    "Free sessions run for 15 minutes — restart as often as you like. Or buy once and never think about it again: Family Sharing covers both phones with one purchase. No subscription." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gratis-Sitzungen laufen 15 Minuten — starte sie neu, so oft du willst. Oder kauf einmal und denk nie wieder daran: Dank Familienfreigabe reicht ein Kauf für beide Telefone. Kein Abo." } }
+      }
+    },
+    "Unlock forever — %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Für immer freischalten — %@" } }
+      }
+    },
+    "Restore Purchases" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Käufe wiederherstellen" } }
+      }
+    },
+    "Not now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jetzt nicht" } }
+      }
+    },
+    "Free session" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gratis-Sitzung" } }
+      }
+    },
+    "Unlock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Freischalten" } }
+      }
+    }
+  }
+}

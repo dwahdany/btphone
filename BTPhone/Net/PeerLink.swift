@@ -51,7 +51,10 @@ actor PeerLink {
 
     private var started = false
     private var hasPairedDevices = false
+    private var hasMultiplePairs = false
     private var lastPublishedState: LinkState?
+    private var searchingSince: Date?
+    private var lastHint: String?
 
     private var listenerTask: Task<Void, Never>?
     private var browserTask: Task<Void, Never>?
@@ -168,6 +171,8 @@ actor PeerLink {
         lastAckProgressDate = nil
         lossHistory = []
         lastTotals = (0, 0)
+        searchingSince = nil
+        setHint(nil)
         publish(.stopped)
     }
 
@@ -183,6 +188,7 @@ actor PeerLink {
             for try await devices in WAPairedDevice.allDevices {
                 guard started else { return }
                 hasPairedDevices = !devices.isEmpty
+                hasMultiplePairs = devices.count > 1
                 let paired = hasPairedDevices
                 if let onPairedChanged {
                     DispatchQueue.main.async { onPairedChanged(paired) }
@@ -331,7 +337,7 @@ actor PeerLink {
     private func runOutbound(to endpoint: WAEndpoint) async throws {
         let peer = endpoint.device.name
             ?? endpoint.device.pairingInfo?.pairingName
-            ?? "paired iPhone"
+            ?? String(localized: "paired iPhone")
         publish(.connecting(peer: peer))
         Self.log.info("outbound: connecting to \(peer, privacy: .public)")
 
@@ -415,7 +421,7 @@ actor PeerLink {
         if isReady {
             outboundReadySince = Date()
             publish(.connected(peer: peer))
-            publishHint(nil)
+            setHint(nil)
         }
     }
 
@@ -493,6 +499,26 @@ actor PeerLink {
             stats.recentLossPercent =
                 (received + lost) > 0 ? Double(lost) * 100 / Double(received + lost) : 0
 
+            // Actionable hints — only while NOT connected: a healthy session
+            // needs no warnings. Multi-pairing ambiguity outranks the
+            // can't-reach hint; inbound audio still flowing suppresses the
+            // latter (the peer is obviously nearby, only our outbound is
+            // rebuilding).
+            let isConnected: Bool = {
+                if case .connected = lastPublishedState { return true }
+                return false
+            }()
+            if isConnected {
+                setHint(nil)
+            } else if hasMultiplePairs {
+                setHint(String(localized: "Multiple phones are paired — TwoUp connects to whichever responds first. Remove old pairings in iOS Settings."))
+            } else if let since = searchingSince, now.timeIntervalSince(since) > 20,
+                      !stats.receivingAudio {
+                setHint(String(localized: "Can't reach the other phone. Make sure it's nearby with Wi-Fi on and TwoUp open."))
+            } else {
+                setHint(nil)
+            }
+
             if let onStats {
                 let snapshot = stats
                 DispatchQueue.main.async { onStats(snapshot) }
@@ -505,12 +531,23 @@ actor PeerLink {
     private func publish(_ state: LinkState) {
         guard state != lastPublishedState else { return }
         lastPublishedState = state
+        switch state {
+        case .searching, .connecting:
+            // .connecting keeps the clock running: a searching↔connecting
+            // failure loop (endpoint found, establishment keeps dying) must
+            // still surface the can't-reach hint.
+            if searchingSince == nil { searchingSince = Date() }
+        case .connected, .stopped, .unpaired, .unsupported:
+            searchingSince = nil
+        }
         if let onState {
             DispatchQueue.main.async { onState(state) }
         }
     }
 
-    private func publishHint(_ hint: String?) {
+    private func setHint(_ hint: String?) {
+        guard hint != lastHint else { return }
+        lastHint = hint
         if let onHint {
             DispatchQueue.main.async { onHint(hint) }
         }

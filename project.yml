@@ -6,6 +6,18 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+fileGroups:
+  - Configuration.storekit
+schemes:
+  BTPhone:
+    build:
+      targets:
+        BTPhone: all
+    run:
+      config: Debug
+      storeKitConfiguration: Configuration.storekit
+    archive:
+      config: Release
 targets:
   BTPhone:
     type: application
@@ -30,9 +42,9 @@ targets:
     info:
       path: BTPhone/Info.plist
       properties:
-        CFBundleDisplayName: BTPhone
+        CFBundleDisplayName: TwoUp
         UILaunchScreen: {}
-        NSMicrophoneUsageDescription: "BTPhone streams your voice to the other rider's phone."
+        NSMicrophoneUsageDescription: "TwoUp streams your voice to the other rider's phone."
         WiFiAwareServices:
           _btphone._udp:
             Publishable: {}

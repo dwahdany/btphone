@@ -127,13 +127,13 @@ final class IntercomAudio {
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
             throw NSError(
                 domain: "BTPhone", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Microphone is not available yet."]
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "Microphone is not available yet.")]
             )
         }
         guard let converter = AVAudioConverter(from: inputFormat, to: wireInt16Format) else {
             throw NSError(
                 domain: "BTPhone", code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "Unsupported microphone format."]
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "Unsupported microphone format.")]
             )
         }
 

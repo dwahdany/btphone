@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>BTPhone</string>
+	<string>TwoUp</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,7 +23,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>BTPhone streams your voice to the other rider's phone.</string>
+	<string>TwoUp streams your voice to the other rider's phone.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

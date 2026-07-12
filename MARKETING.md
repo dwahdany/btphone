@@ -26,13 +26,29 @@ overkill for two-up.
 ## Name
 
 **Primary: TwoUp** — App Store name "TwoUp: Motorcycle Intercom".
+**Decided 2026-07-12; app renamed** (display name TwoUp; bundle id stays
+`com.wahdany.btphone` so installs and pairing survive).
 
 - "Riding two-up" *is* the use case; short, spoken-word friendly.
-- `two-up.app` unregistered (DNS-checked ⚠ re-verify at registrar).
-- A golf app named "Two Up" exists — the no-space "TwoUp" + subtitle keeps the
-  App Store name unique.
 - Quirk: two-up is an Australian ANZAC-Day gambling game. Harmless.
-- ⚠ Run EUIPO/USPTO trademark clearance before committing.
+
+**Trademark knockout screen (TMview API + App Store, 2026-07-12):** no live
+"TWO UP"/"TWOUP" mark in class 9/38 in US/EUIPO/DPMA — all exact word marks
+are dead. Caveats: (a) the bare App Store name "TwoUp" is taken by a golf app
+(Robert Toothill) — our longer listing name avoids the uniqueness check;
+(b) a live US class 9 *design* mark "2 UP" (2UP Media LLC, dating app for
+gamers) could cause 2(d) friction **if we ever file a US registration** —
+using the name is a different, lower risk; (c) "two-up" is descriptive for
+this exact use case, so our own mark is weak — protection will come from the
+listing name + brand, not a registration; (d) Australia is blocked for class
+9 filings (live Aristocrat gaming-machine marks). This was a knockout screen,
+not professional clearance — commission one only if the app gets traction.
+
+**Domains (RDAP-verified 2026-07-12):** `two-up.app` **available — register
+now**; `twoupapp.com` and `gettwoup.com` available as backups; `twoup.app`
+was taken 2026-01-29 (privacy-protected, "Coming Soon" page — someone may be
+building a TwoUp; another reason to register ours and ship first);
+`twoup.de` parked for sale at broker Dovendi; `two-up.de` actively held.
 
 Runners-up (verified clean 2026-07-11):
 
@@ -71,8 +87,11 @@ Bluetooth — the technology being replaced.
 >   dropouts
 > • Glove-sized mute button, honest connection status, no subscription
 >
-> Requires two iPhones (iPhone 12 or later) on iOS 26+, one per helmet.
+> Requires two iPhones on iOS 26+ that support Wi-Fi Aware, one per helmet.
 > Built for rider and passenger on one motorcycle.
+>
+> *(Superseded by store/metadata-en-US.md — that file is the source of
+> truth for App Store copy.)*
 
 **Keywords:** motorcycle intercom, helmet communication, pillion, passenger,
 sozius, gegensprechanlage, rider, two-up, offline walkie talkie
@@ -152,16 +171,25 @@ Riding season is now (July). Sequence:
 
 ## Pre-launch checklist
 
-- [ ] Trademark clearance (EUIPO/USPTO) on final name; register domains
-- [ ] Rename app + bundle display name; new icon text-free (already is)
-- [ ] Privacy policy + App Privacy labels ("no data collected" — true)
-- [ ] German localization (UI strings + App Store page)
-- [ ] Published field numbers: battery %/hr, on-bike range, HFP audio quality
-      across a few helmet headsets
-- [ ] Session-limit + IAP unlock (StoreKit 2), Family Sharing enabled
-- [ ] App Review notes: background audio justification (live intercom)
-- [ ] TestFlight public link + a 30-second demo video (two helmets, one take)
-- [ ] Featuring nomination submitted in App Store Connect
+- [x] Trademark knockout screen (TMview: US/EU/DE clear in class 9/38 —
+      see Name section) — ⚠ USER: register `two-up.app` (+ backups) at a
+      registrar
+- [x] Rename app display name to TwoUp (bundle id unchanged)
+- [x] Privacy policy (PRIVACY.md) + App Privacy labels ("no data collected")
+- [x] German localization — UI strings (Localizable.xcstrings +
+      InfoPlist.xcstrings) and App Store page (store/metadata-de-DE.md)
+- [x] First field numbers: ~2 h continuous session (≈350k packets),
+      negligible battery — still to collect: %/hr, on-bike range, HFP quality
+      across headset models
+- [x] Session-limit (15 min) + lifetime-unlock code (StoreKit 2, fail-open) —
+      ⚠ USER: create the non-consumable `com.wahdany.btphone.lifetime` in App
+      Store Connect and toggle Family Sharing ON (irreversible once published,
+      but required for the couple pitch)
+- [x] App Review notes drafted (store/review-notes.md)
+- [x] Featuring nomination drafted (store/featuring-nomination.md) —
+      ⚠ USER: submit in App Store Connect
+- [ ] App Store Connect app record + first TestFlight build + public link
+- [ ] 30-second demo video (two helmets, one take)
 
 ## Long-shot upside
 

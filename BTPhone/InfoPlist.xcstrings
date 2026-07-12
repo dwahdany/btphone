@@ -1,0 +1,20 @@
+{
+  "sourceLanguage" : "en",
+  "version" : "1.0",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "TwoUp" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TwoUp" } }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "TwoUp streams your voice to the other rider's phone." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "TwoUp überträgt deine Stimme an das Telefon des anderen Fahrers." } }
+      }
+    }
+  }
+}
