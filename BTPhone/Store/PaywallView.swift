@@ -34,14 +34,13 @@ struct PaywallView: View {
                         if store.gate == .unlocked { dismiss() }
                     }
                 } label: {
-                    Text("Unlock forever — \(product.displayPrice)")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.green.gradient, in: RoundedRectangle(cornerRadius: 14))
+                    buyLabel(price: product.displayPrice)
                 }
                 .buttonStyle(.plain)
+            } else if IntercomController.demoScene != nil {
+                // Screenshot rig: StoreKit products don't load in the
+                // Simulator; render the button with the real price text.
+                buyLabel(price: Locale.current.identifier.hasPrefix("de") ? "9,99 €" : "€9.99")
             }
 
             if let error = store.purchaseError {
@@ -67,5 +66,14 @@ struct PaywallView: View {
         }
         .padding(24)
         .presentationDetents([.medium, .large])
+    }
+
+    private func buyLabel(price: String) -> some View {
+        Text("Unlock forever — \(price)")
+            .font(.headline)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.green.gradient, in: RoundedRectangle(cornerRadius: 14))
     }
 }

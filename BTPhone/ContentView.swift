@@ -60,6 +60,11 @@ struct ContentView: View {
                 intercom.sessionLimitReached = false
             }
         }
+        .onAppear {
+            if IntercomController.demoScene == "paywall" {
+                paywallTrigger = .manual
+            }
+        }
     }
 
     private var header: some View {
