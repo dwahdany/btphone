@@ -50,7 +50,7 @@ battery.
 > dropouts.
 >
 > Needs two iPhones on iOS 26+. It's free to test, and the app is open
-> source (github.com/dwahdany/btphone). TestFlight link: [LINK]. I'd love to
+> source (github.com/dwahdany/btphone). TestFlight link: https://testflight.apple.com/join/6Sm5XtNR. I'd love to
 > know how it does with your headsets and on your rides.
 
 ## Recruitment post — German (motor-talk.de "Gegensprechanlage" threads)
@@ -70,14 +70,18 @@ battery.
 > verbindet sich nach Abbrüchen selbst neu.
 >
 > Voraussetzung: zwei iPhones mit iOS 26+. Kostenlos, Open Source
-> (github.com/dwahdany/btphone). TestFlight: [LINK]. Rückmeldungen zu euren
+> (github.com/dwahdany/btphone). TestFlight: https://testflight.apple.com/join/6Sm5XtNR. Rückmeldungen zu euren
 > Headsets und Strecken sind Gold wert.
 
 ## Checklist to go live
 
-- [ ] App Store Connect: create app record (bundle id com.wahdany.twoup)
-- [ ] Upload build (archive + upload via `xcodebuild -exportArchive` or
-      Transporter)
-- [ ] Enable public TestFlight link, paste into the posts above
+- [x] App Store Connect: app record 6790109864 (bundle id com.wahdany.twoup)
+- [x] Build 1.0 (1) uploaded via `xcodebuild -exportArchive` (manual signing,
+      profile "TwoUp App Store" created through the ASC API)
+- [x] Public TestFlight link (group "Riders"):
+      https://testflight.apple.com/join/6Sm5XtNR
+- [ ] Beta App Review: needs a contact phone number in the beta review
+      details, then submit the build — the public link works only after
+      approval
 - [ ] Record the 30-second demo video (two helmets, one take)
 - [ ] Post in ONE existing thread per community, answer questions daily

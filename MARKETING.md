@@ -188,7 +188,10 @@ Riding season is now (July). Sequence:
 - [x] App Review notes drafted (store/review-notes.md)
 - [x] Featuring nomination drafted (store/featuring-nomination.md) —
       ⚠ USER: submit in App Store Connect
-- [ ] App Store Connect app record + first TestFlight build + public link
+- [x] App Store Connect app record + first TestFlight build + public link
+      (https://testflight.apple.com/join/6Sm5XtNR) + IAP (€9.99, Family
+      Sharing) + metadata/screenshots en+de — all pushed via API 2026-07-12
+- [ ] Beta App Review submission — ⚠ USER: contact phone number needed
 - [ ] 30-second demo video (two helmets, one take)
 
 ## Long-shot upside
