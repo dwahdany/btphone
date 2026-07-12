@@ -176,6 +176,50 @@ final class IntercomController: ObservableObject {
         freeSessionEndsAt = nil
     }
 
+    /// Screenshot rig (DEMO_SCENE env var): paints a believable UI state
+    /// without touching audio, network, or permissions. The scene must be
+    /// known from the FIRST render — the Simulator build has no Wi-Fi Aware
+    /// entitlement and the framework fatal-errors on any API touch, so the
+    /// UI swaps the real pairing views out based on this before onAppear.
+    #if DEBUG
+    static let demoScene: String? = ProcessInfo.processInfo.environment["DEMO_SCENE"]
+    #else
+    static let demoScene: String? = nil
+    #endif
+
+    #if DEBUG
+    func applyDemoScene(_ scene: String) {
+        switch scene {
+        case "pairing":
+            isPaired = false
+            linkState = .unpaired
+        case "searching":
+            isPaired = true
+            sessionActive = true
+            linkState = .searching
+        default: // "connected", "muted", "free"
+            isPaired = true
+            sessionActive = true
+            audioActive = true
+            linkState = .connected(peer: "iPhone von Alwine")
+            var demo = PeerLink.Stats()
+            demo.packetsReceived = 47_312
+            demo.recentLossPercent = 0.3
+            demo.receivingAudio = true
+            stats = demo
+            bufferMilliseconds = 58
+            if scene == "muted" {
+                isMuted = true
+                stats.receivingAudio = false
+                stats.peerMuted = true
+            }
+            if scene == "free" {
+                freeSessionEndsAt = Date().addingTimeInterval(11 * 60 + 24)
+            }
+        }
+    }
+    #endif
+
     func restartAudio() {
         restartWork?.cancel()
         restartWork = nil

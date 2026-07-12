@@ -194,6 +194,23 @@ struct ContentView: View {
                     .multilineTextAlignment(.center)
             }
 
+            if IntercomController.demoScene != nil {
+                // Screenshot rig: the real discovery views would crash the
+                // entitlement-less Simulator build.
+                HStack(spacing: 12) {
+                    pairingButtonLabel("dot.radiowaves.left.and.right", "Be discoverable")
+                    pairingButtonLabel("magnifyingglass", "Find other phone")
+                }
+            } else {
+                pairingButtons
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var pairingButtons: some View {
             HStack(spacing: 12) {
                 if let publishable = WAPublishableService.allServices[PeerLink.serviceName] {
                     DevicePairingView(
@@ -224,10 +241,6 @@ struct ContentView: View {
                     )
                 }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
     }
 
     private func pairingButtonLabel(_ icon: String, _ title: LocalizedStringKey) -> some View {

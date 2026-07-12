@@ -12,6 +12,15 @@ struct BTPhoneApp: App {
                 .environmentObject(intercom)
                 .environmentObject(store)
                 .onAppear {
+                    #if DEBUG
+                    // Screenshot rig: fake a session state instead of
+                    // starting the real pipelines (no mic prompt, works in
+                    // the Simulator where Wi-Fi Aware doesn't).
+                    if let scene = IntercomController.demoScene {
+                        intercom.applyDemoScene(scene)
+                        return
+                    }
+                    #endif
                     store.start()
                     intercom.entitlements = store
                     intercom.start()
