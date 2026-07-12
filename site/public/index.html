@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TwoUp — The motorcycle intercom already in your pocket</title>
+<meta name="description" content="Talk to your passenger through two iPhones — no internet, no SIM, no €200 intercom hardware. Direct, encrypted, works with both phones locked in your pockets.">
+<meta property="og:title" content="TwoUp — Motorcycle Intercom">
+<meta property="og:description" content="Two iPhones become a rider–passenger intercom. No internet, no hardware, encrypted phone-to-phone.">
+<meta property="og:image" content="https://two-up.app/img/hero.png">
+<style>
+:root { --bg:#0b111e; --bg2:#000; --card:#ffffff10; --fg:#fff; --dim:#9aa3b2; --green:#30d158; --blue:#0a84ff; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:linear-gradient(180deg,var(--bg),var(--bg2) 60%); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:1020px; margin:0 auto; padding:0 24px; }
+header { padding:28px 0; display:flex; justify-content:space-between; align-items:center; }
+.logo { font-weight:800; font-size:1.35rem; letter-spacing:.5px; }
+header a { color:var(--dim); text-decoration:none; margin-left:20px; font-size:.95rem; }
+header a:hover { color:var(--fg); }
+.hero { display:flex; gap:48px; align-items:center; padding:48px 0 72px; flex-wrap:wrap; }
+.hero-text { flex:1 1 420px; }
+h1 { font-size:clamp(2rem,5vw,3.1rem); line-height:1.15; font-weight:800; margin-bottom:18px; }
+.sub { color:var(--dim); font-size:1.15rem; margin-bottom:30px; max-width:34em; }
+.cta { display:inline-block; background:var(--blue); color:#fff; font-weight:700;
+  padding:14px 28px; border-radius:14px; text-decoration:none; font-size:1.05rem; }
+.cta:hover { filter:brightness(1.1); }
+.cta-note { display:block; color:var(--dim); font-size:.85rem; margin-top:12px; }
+.phone { flex:0 1 300px; margin:0 auto; }
+.phone img { width:100%; max-width:320px; border-radius:36px; box-shadow:0 24px 80px #000c, 0 0 0 1px #ffffff14; }
+section { padding:56px 0; }
+h2 { font-size:1.7rem; font-weight:800; margin-bottom:28px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
+.card { background:var(--card); border-radius:18px; padding:22px; }
+.card h3 { font-size:1.05rem; margin-bottom:8px; }
+.card p { color:var(--dim); font-size:.95rem; }
+.privacy-band { background:var(--card); border-radius:24px; padding:36px; }
+.privacy-band p { color:var(--dim); max-width:46em; }
+.privacy-band strong { color:var(--fg); }
+.price { text-align:center; }
+.price .big { font-size:2.4rem; font-weight:800; color:var(--green); }
+.price p { color:var(--dim); max-width:38em; margin:10px auto 0; }
+footer { border-top:1px solid #ffffff14; padding:32px 0 48px; color:var(--dim); font-size:.9rem;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+footer a { color:var(--dim); margin-right:18px; text-decoration:none; }
+footer a:hover { color:var(--fg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">TwoUp</div>
+  <nav>
+    <a href="https://github.com/dwahdany/btphone">Source</a>
+    <a href="/privacy/">Privacy</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="hero-text">
+    <h1>The motorcycle intercom already in your pocket.</h1>
+    <p class="sub">Talk to your passenger — clearly, hands-free, and without buying
+    €200 of intercom hardware. TwoUp connects two iPhones directly to each other:
+    no internet, no SIM, no servers. Encrypted voice, phone to phone, with both
+    phones locked in your pockets.</p>
+    <a class="cta" href="https://testflight.apple.com/join/6Sm5XtNR">Join the TestFlight beta</a>
+    <span class="cta-note">Requires two iPhones on iOS 26 or later, one per helmet.</span>
+  </div>
+  <div class="phone"><img src="/img/hero.png" alt="TwoUp connected: green LIVE button, connected to the passenger's iPhone" width="1320" height="2868"></div>
+</div>
+
+<section>
+  <h2>Built for the ride</h2>
+  <div class="grid">
+    <div class="card"><h3>No internet. Anywhere.</h3><p>Wi-Fi Aware links the phones directly. Tunnels, mountains, abroad without roaming — if the phones are within range of each other, you're talking.</p></div>
+    <div class="card"><h3>Your headsets, not new ones</h3><p>Works with the Bluetooth helmet headsets you already own — or any headset. The helmet's boom mic is used automatically.</p></div>
+    <div class="card"><h3>Talk naturally</h3><p>Full-duplex conversation with echo cancellation and noise suppression. No push-to-talk, no walkie-talkie turns.</p></div>
+    <div class="card"><h3>Locked and pocketed</h3><p>Pair once. The link connects automatically every ride, survives dropouts, and keeps running with both phones locked away.</p></div>
+    <div class="card"><h3>Glove-friendly</h3><p>One oversized mute button and an honest connection status you can read at a glance in a tank-bag mount.</p></div>
+    <div class="card"><h3>Battery-friendly</h3><p>A two-hour ride barely registers on either phone.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="privacy-band">
+    <h2>Private by design</h2>
+    <p>Your voice never leaves the two phones — <strong>there are no servers for it
+    to leave to</strong>. No account, no analytics, nothing collected, and the link is
+    encrypted by iOS itself. The app is <a href="https://github.com/dwahdany/btphone" style="color:var(--fg)">open source</a>,
+    so you don't have to take our word for it.</p>
+  </div>
+</section>
+
+<section class="price">
+  <h2>Free to try. Buy once, if you like it.</h2>
+  <div class="big">€9.99 — forever</div>
+  <p>Every session is free for 15 minutes, restart as often as you like. One lifetime
+  unlock removes the limit, and Family Sharing covers both of you with a single
+  purchase. No subscription, ever.</p>
+</section>
+
+<footer>
+  <div>© 2026 Dariush Wahdany</div>
+  <div>
+    <a href="/privacy/">Privacy</a>
+    <a href="/impressum/">Impressum</a>
+    <a href="https://github.com/dwahdany/btphone">GitHub</a>
+    <a href="mailto:contact@two-up.app">Contact</a>
+  </div>
+</footer>
+</div>
+</body>
+</html>

@@ -80,8 +80,8 @@ First release. Ride safe, talk freely.
 ## URLs
 
 - Support URL: https://github.com/dwahdany/btphone
-- Marketing URL: https://two-up.app (register before submission)
-- Privacy Policy URL: https://github.com/dwahdany/btphone/blob/main/PRIVACY.md
+- Marketing URL: https://two-up.app
+- Privacy Policy URL: https://two-up.app/privacy/
 
 ## App Privacy (nutrition label)
 

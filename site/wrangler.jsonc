@@ -1,0 +1,12 @@
+{
+	"name": "twoup-site",
+	"compatibility_date": "2026-07-01",
+	"assets": {
+		"directory": "./public",
+		"not_found_handling": "404-page"
+	},
+	"routes": [
+		{ "pattern": "two-up.app", "custom_domain": true },
+		{ "pattern": "www.two-up.app", "custom_domain": true }
+	]
+}
