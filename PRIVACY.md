@@ -3,7 +3,7 @@
 *Effective: July 12, 2026*
 
 TwoUp (the motorcycle rider–passenger intercom app, bundle id
-`com.wahdany.btphone`) is built so that there is nothing to collect.
+`com.wahdany.twoup`) is built so that there is nothing to collect.
 
 ## What we collect
 

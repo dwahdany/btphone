@@ -26,7 +26,7 @@ targets:
       - BTPhone
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.wahdany.btphone
+        PRODUCT_BUNDLE_IDENTIFIER: com.wahdany.twoup
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 8HAR42CEXZ
@@ -46,7 +46,7 @@ targets:
         UILaunchScreen: {}
         NSMicrophoneUsageDescription: "TwoUp streams your voice to the other rider's phone."
         WiFiAwareServices:
-          _btphone._udp:
+          _twoup._udp:
             Publishable: {}
             Subscribable: {}
         UIBackgroundModes:

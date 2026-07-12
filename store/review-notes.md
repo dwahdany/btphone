@@ -23,7 +23,7 @@ indicator; the END button releases the microphone and the audio session.
 ENTITLEMENT
 The app uses the self-service Wi-Fi Aware entitlement
 (com.apple.developer.wifi-aware: Publish, Subscribe) with the matching
-WiFiAwareServices Info.plist declaration (`_btphone._udp`).
+WiFiAwareServices Info.plist declaration (`_twoup._udp`).
 
 IN-APP PURCHASE
 Free tier: each intercom session is limited to 15 minutes (unlimited

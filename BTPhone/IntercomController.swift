@@ -7,7 +7,7 @@ import os
 /// Glues the audio pipeline to the network link and exposes UI state.
 @MainActor
 final class IntercomController: ObservableObject {
-    private static let log = Logger(subsystem: "com.wahdany.btphone", category: "Audio")
+    private static let log = Logger(subsystem: "com.wahdany.twoup", category: "Audio")
     @Published private(set) var linkState: PeerLink.LinkState = .stopped
     @Published private(set) var stats = PeerLink.Stats()
     @Published private(set) var bufferMilliseconds = 0

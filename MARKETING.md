@@ -26,8 +26,8 @@ overkill for two-up.
 ## Name
 
 **Primary: TwoUp** — App Store name "TwoUp: Motorcycle Intercom".
-**Decided 2026-07-12; app renamed** (display name TwoUp; bundle id stays
-`com.wahdany.btphone` so installs and pairing survive).
+**Decided 2026-07-12; app renamed** (display name TwoUp; bundle id
+`com.wahdany.twoup` — switched pre-launch while it was still free to do).
 
 - "Riding two-up" *is* the use case; short, spoken-word friendly.
 - Quirk: two-up is an Australian ANZAC-Day gambling game. Harmless.
@@ -182,7 +182,7 @@ Riding season is now (July). Sequence:
       negligible battery — still to collect: %/hr, on-bike range, HFP quality
       across headset models
 - [x] Session-limit (15 min) + lifetime-unlock code (StoreKit 2, fail-open) —
-      ⚠ USER: create the non-consumable `com.wahdany.btphone.lifetime` in App
+      ⚠ USER: create the non-consumable `com.wahdany.twoup.lifetime` in App
       Store Connect and toggle Family Sharing ON (irreversible once published,
       but required for the couple pitch)
 - [x] App Review notes drafted (store/review-notes.md)

@@ -75,7 +75,7 @@ battery.
 
 ## Checklist to go live
 
-- [ ] App Store Connect: create app record (bundle id com.wahdany.btphone)
+- [ ] App Store Connect: create app record (bundle id com.wahdany.twoup)
 - [ ] Upload build (archive + upload via `xcodebuild -exportArchive` or
       Transporter)
 - [ ] Enable public TestFlight link, paste into the posts above

@@ -13,8 +13,8 @@ import os
 /// currentEntitlements reads a local cache so ownership works offline anyway.
 @MainActor
 final class EntitlementStore: ObservableObject {
-    static let lifetimeProductID = "com.wahdany.btphone.lifetime"
-    private static let log = Logger(subsystem: "com.wahdany.btphone", category: "Store")
+    static let lifetimeProductID = "com.wahdany.twoup.lifetime"
+    private static let log = Logger(subsystem: "com.wahdany.twoup", category: "Store")
 
     enum Gate {
         case unknown

@@ -36,7 +36,7 @@
 	</array>
 	<key>WiFiAwareServices</key>
 	<dict>
-		<key>_btphone._udp</key>
+		<key>_twoup._udp</key>
 		<dict>
 			<key>Publishable</key>
 			<dict/>

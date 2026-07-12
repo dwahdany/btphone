@@ -5,7 +5,7 @@ import os
 
 /// Peer discovery and audio transport over Wi-Fi Aware (iOS 26).
 ///
-/// Both phones publish AND subscribe the `_btphone._udp` service to their
+/// Both phones publish AND subscribe the `_twoup._udp` service to their
 /// paired devices, giving two independent one-way UDP flows: my browser
 /// connects to your listener to carry my mic, yours connects to mine to
 /// carry your mic. No role negotiation — both phones just run the app.
@@ -18,8 +18,8 @@ import os
 /// Datagrams with an empty payload are mute keepalives: they keep the flow
 /// (and the peer's "link is alive" signal) up while the mic is muted.
 actor PeerLink {
-    static let serviceName = "_btphone._udp"
-    private static let log = Logger(subsystem: "com.wahdany.btphone", category: "PeerLink")
+    static let serviceName = "_twoup._udp"
+    private static let log = Logger(subsystem: "com.wahdany.twoup", category: "PeerLink")
 
     enum LinkState: Equatable, Sendable {
         case stopped

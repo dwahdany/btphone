@@ -1,7 +1,7 @@
 # TwoUp
 
-*(formerly BTPhone — the bundle id `com.wahdany.btphone` and target name keep
-the old name so existing installs and the Wi-Fi Aware pairing survive)*
+*(formerly BTPhone — bundle id `com.wahdany.twoup`, service `_twoup._udp`;
+only the Xcode target and this repo keep the old working name)*
 
 A rider/passenger intercom for two iPhones. The phones talk **directly to each
 other over Wi-Fi Aware** (iOS 26's peer-to-peer Wi-Fi framework) — no
