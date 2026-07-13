@@ -10,18 +10,17 @@ Thank you for the review. Here is the requested information.
 
 **1. Screen recording**
 
-Attached. TwoUp is a live voice intercom between TWO iPhones (a motorcycle
-rider and passenger), so the recording is filmed with a camera showing both
-physical devices side by side — a single-device screen capture cannot
-demonstrate the core feature (voice traveling from one phone to the other).
-The recording shows: cold launch on both devices, the microphone permission
-prompt (the app's only system permission), the one-time pairing flow
-(Be discoverable / Find other phone, using Apple's DeviceDiscoveryUI), both
-phones tapping START, live two-way speech through the peer-to-peer link,
-the mute toggle, both phones locked while audio continues (the core use
-case: phones ride in the riders' pockets), and the in-app purchase paywall
-(reached from "Unlock unlimited sessions") including the €9.99 lifetime
-unlock and the Restore Purchases button.
+Attached — a screen recording captured on a physical iPhone 16 Pro
+(iOS 26.5). Note that TwoUp is a live voice intercom between TWO iPhones (a
+motorcycle rider and passenger); a second physical iPhone is paired and
+active just off-screen, and its user's live voice can be heard playing
+through the recorded device during the session. The recording shows: cold
+launch, the microphone permission prompt (the app's only system
+permission), the one-time pairing flow (Apple's DeviceDiscoveryUI), START,
+a live connected session with the peer's speech audibly playing and the
+packet counter advancing, the mute toggle, the in-app purchase paywall
+(reached from "Unlock unlimited sessions") with the €9.99 lifetime unlock
+and the Restore Purchases button, and ending the session.
 
 **2. Devices and operating systems tested**
 
@@ -92,22 +91,23 @@ recorded or stored.
 
 ## Shot list for the screen recording (item 1)
 
-One take, 60–90 seconds, filmed with a camera over both phones on a table,
-latest iOS, good light. Speak while recording so reviewers hear the voice
-travel.
+Single-device iOS screen recording (Control Center, microphone option OFF —
+the app owns the mic during a session; incoming audio is captured as app
+audio automatically). 60–90 seconds, one take, on the iPhone 16 Pro. The
+second phone sits nearby, freshly launched, with someone to speak into it.
 
-1. Both phones on home screen → launch TwoUp on both (0:00)
-2. Mic permission prompt appears → Allow (on at least one phone on a fresh
-   install; reset via Settings → Privacy → Microphone beforehand)
-3. Pairing: "Be discoverable" on phone A, "Find other phone" on phone B,
-   select, confirm system dialog
-4. Tap START on both → status turns "Connected", button green LIVE
-5. Speak into phone A ("test one two") → audibly plays from phone B, then
-   the reverse
-6. Tap the big button → MUTED (red), other phone shows "The other phone is
-   muted" → unmute
-7. Tap "Unlock" beside the free-session countdown → paywall sheet with
-   "Unlock forever — €9.99" and "Restore Purchases" → dismiss with
-   "Not now"
-8. Lock both phones, keep talking for ~5 seconds to show audio continues →
-   unlock, tap "End intercom"
+1. Start recording on the home screen → launch TwoUp
+2. Mic permission prompt → Allow (reset beforehand via delete/reinstall or
+   Settings → Privacy → Microphone)
+3. Pairing card → "Find other phone" → select the peer → confirm the
+   system dialog (peer taps "Be discoverable" off-screen)
+4. Tap START → "Connected to …", button green LIVE
+5. The other person speaks into their phone → their voice audibly plays in
+   the recording, packet counter climbing
+6. Big button → MUTED (red) → tap again → LIVE
+7. "Unlock" beside the free-session countdown → paywall sheet
+   ("Unlock forever — €9.99", "Restore Purchases") → "Not now"
+8. "End intercom"
+
+Optional bonus for the reviewer (not required): a short camera clip of both
+phones side by side, or of the locked-phones-in-pocket use case.
