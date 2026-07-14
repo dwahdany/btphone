@@ -55,6 +55,13 @@ actor PeerLink {
     private var lastPublishedState: LinkState?
     private var searchingSince: Date?
     private var lastHint: String?
+    /// Device IDs from the last WAPairedDevice snapshot; a CHANGE while
+    /// running (fresh pairing) triggers a full link rebuild — sessions built
+    /// on pre-pairing daemon state reliably wedge on first establishment.
+    private var pairedSnapshot: Set<String>?
+    private var lastAutoRestartDate: Date?
+    /// Jittered so two phones can't fall into restart lockstep.
+    private var stuckThreshold = TimeInterval.random(in: 12...18)
 
     private var listenerTask: Task<Void, Never>?
     private var browserTask: Task<Void, Never>?
@@ -197,6 +204,17 @@ actor PeerLink {
                     publish(.unpaired)
                 } else if lastPublishedState == .unpaired {
                     publish(.searching)
+                }
+
+                let snapshot = Set(devices.keys.map { String(describing: $0) })
+                let changed = pairedSnapshot != nil && snapshot != pairedSnapshot
+                pairedSnapshot = snapshot
+                if changed, paired {
+                    // Restart cancels this task; the loop ends via the
+                    // cancellation check on its next iteration while the
+                    // fresh monitor picks up from the stored snapshot.
+                    Self.log.info("pairing set changed — rebuilding link")
+                    restart()
                 }
             }
         } catch {
@@ -362,6 +380,11 @@ actor PeerLink {
         )
         txSequence &+= 1
         let establish = Task { try? await connection.send(hello) }
+        // Cancellation can throw us out of ANY await below (auto-restart
+        // cancels browserTask mid-sleep); without this, the orphaned hello
+        // task keeps the never-ready connection and its datapath alive
+        // forever. The explicit cancels on the exit paths become redundant.
+        defer { establish.cancel() }
 
         outbound = connection
         outboundBroken = false
@@ -522,6 +545,22 @@ actor PeerLink {
             if let onStats {
                 let snapshot = stats
                 DispatchQueue.main.async { onStats(snapshot) }
+            }
+
+            // Escalating self-heal: browse-cycle retries sometimes never
+            // recover from a wedged daemon session, but a full teardown and
+            // rebuild (what the user achieves by END+START) does. If we've
+            // been non-connected for a while with nothing coming in, do it
+            // ourselves. The threshold is jittered per-process and a
+            // cooldown prevents thrash; restart() resets searchingSince, so
+            // each attempt gets a full window before the next.
+            if let since = searchingSince,
+               now.timeIntervalSince(since) > stuckThreshold,
+               now.timeIntervalSince(lastAutoRestartDate ?? .distantPast) > 30 {
+                lastAutoRestartDate = now
+                Self.log.error("auto-restart: not connected for \(Int(now.timeIntervalSince(since)))s — rebuilding link")
+                restart()
+                return
             }
         }
     }
